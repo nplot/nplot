@@ -5,7 +5,7 @@ function [paldeflist, assignpal] = analyzepal(scan, paldeflist)
 % reteurn an extended paldeflist and the assignment table of PAL-values to
 % this list
 
-% P. Steffens, 11/2009
+% P. Steffens, 07/2015
 
 
 npollines = length(scan.POLAN);
@@ -32,7 +32,7 @@ for p = 1:npollines
         end
     end
     if ~isempty(regexp(upper(scan.POLAN{p}),'ON', 'once' ))
-        [st,en] = regexp(upper(scan.POLAN{p}),'(?<=ON\s+(\S+\s+)*)\S+'); % all arguments of ON-command
+        [st,en] = regexp(upper(scan.POLAN{p}),'(?<=ON\s+(\S+\s+)*)\S+|(\S+)(?=\s+ON)'); % all arguments of ON-command
         for a = 1:numel(st)
             if ~isempty(currentval), paldef.(currentvar) = currentval; end
             currentval = [];
@@ -40,7 +40,7 @@ for p = 1:npollines
         end
     end
     if ~isempty(regexp(upper(scan.POLAN{p}),'OF', 'once' ))
-        [st,en] = regexp(upper(scan.POLAN{p}),'(?<=(OF|OFF)\s+(\S+\s+)*)\S+'); % all arguments of OFF-command
+        [st,en] = regexp(upper(scan.POLAN{p}),'(?<=(OF|OFF)\s+(\S+\s+)*)\S+|(\S+)(?=\s+OFF)'); % all arguments of OFF-command
         for a = 1:numel(st)
             if ~isempty(currentval), paldef.(currentvar) = currentval; end
             currentval = [];

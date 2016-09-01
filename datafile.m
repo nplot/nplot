@@ -10,4 +10,7 @@ function datafile(varargin)
 
 [server, username] = getoption('defaultserver','defaultuser');
 
-system(['ssh ' username '@' server ' ./datafile ' strjoin(varargin)],'-echo');
+% join varagin strings (do not use matlab strjoin)
+optstring = ''; for i=1:nargin, optstring = [optstring, ' ', varargin{i}]; end %#ok<AGROW>
+
+system(['ssh ' username '@' server ' ./datafile' optstring],'-echo');

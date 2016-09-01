@@ -12,6 +12,8 @@ classdef nfit < handle
     % Possible parameters:
     % xdata, [xdata]    : x-data
     % (same for ydata, yerror)
+    % graphhandle, ax   : axes used for plotting fit line
+    % linecolor, cdef   : color of fitline
     % startval, [vals]  : start parameters for fit
     % fitvar, [1/0]     : array containing "1" for variable and "0" for fixed parameters
     % fitfunction, [func]: function used for fitting
@@ -118,6 +120,18 @@ classdef nfit < handle
                 end
             end
             
+            
+            % Initialize...
+            % axes for plotting            
+            hobj.graphhandle = readinput('graphhandle',varargin,'last');
+            if nargin>0 && numel(firstarg)==1 && ishandle(firstarg) % check if first input is axes handle
+                parenthandle = firstarg; % input argument is a handle --> use this to take data from figure
+                varargin = varargin(2:end); % Remove first entry from varargin (has been treated)
+            else
+                fig = get(0,'CurrentFigure');
+                if ~isempty(fig), parenthandle = get(fig,'CurrentAxes'); else parenthandle = []; end
+            end
+           
             % Initialize data :
             % Assign directly, if given
             hobj.xdata = readinput('xdata',varargin,'last');
@@ -125,45 +139,46 @@ classdef nfit < handle
             hobj.yerror= readinput('yerror',varargin,'last');
             % Otherwise :
             if  isempty(hobj.xdata) && isempty(hobj.ydata) && isempty(hobj.yerror) ...
-                 && ~any(strcmpi('nodata',varargin)) ... 
-                 && ~isempty(get(0,'CurrentFigure')) && ~isempty(get(gcf,'CurrentAxes')) % some axes do exist
-                % check if first input is axes handle
-                if nargin>0 && numel(firstarg)==1 && ishandle(firstarg)                     
-                    parenthandle = firstarg; % input argument is a handle --> use this to take data from figure
-                    varargin = varargin(2:end); % Remove first entry from varargin (has been treated)
-                else
-                    parenthandle = gca;
-                end
+             && ~any(strcmpi('nodata',varargin)) ... 
+             && ~isempty(get(0,'CurrentFigure')) && ~isempty(get(gcf,'CurrentAxes')) % some axes do exist
                 figdata = guidata(parenthandle); % try to read guidata
                 % If guidata has plotdataset structure (created e.g. by plot1d)
                 if isfield(figdata,'plotdataset')
                     try
                         ind = length(figdata.plotdataset); 
-                        if strcmpi(get(parenthandle,'type'),'axes')
+                        if isgraphics(parenthandle,'axes')
                             % axes handle provided, find dataset in these axes
+                            % If several datasets, take first one found
                             while ind>0 && figdata.plotdataset{ind}.axhandle ~= parenthandle, ind=ind-1; end
                         end
                         hobj.xdata  = figdata.plotdataset{ind}.x;
                         hobj.ydata  = figdata.plotdataset{ind}.y;
                         hobj.yerror = figdata.plotdataset{ind}.dy;
-                        hobj.graphhandle = figdata.plotdataset{ind}.axhandle;
+                        if isempty(hobj.graphhandle), hobj.graphhandle = figdata.plotdataset{ind}.axhandle; end
                         hobj.fitline.plotstyle.color = get(figdata.plotdataset{ind}.plothandle,'color');
                     catch, fprintf('Error on reading window''s guidata structure. Exit.\n'); return;
                     end
                 else
                     % get xy data directly from graphics object
-                    hdat = findobj(parenthandle,'type','hggroup');
-                    hobj.graphhandle = get(hdat,'parent');
-                    if numel(hdat)==1 
-                        hobj.xdata = get(hdat,'xdata');
-                        hobj.ydata = get(hdat,'ydata');
-                        hobj.yerror= get(hdat,'udata');
+                    hdat = findobj(parenthandle,'type','hggroup','-or','type','errorbar');
+                    if isempty(hobj.graphhandle), hobj.graphhandle = get(hdat,'parent'); end
+                    if numel(hdat)>=1 
+                        hobj.xdata = get(hdat(1),'xdata');
+                        hobj.ydata = get(hdat(1),'ydata');
+                        hobj.yerror= get(hdat(1),'udata');
                     end
                 end
             end
             
+            % evtly. set linecolor
+            c = readinput('linecolor',varargin,'last');
+            if ~isempty(c), hobj.fitline.plotstyle.color = c; end
+
+            if isempty(varargin), fprintf('Missing argument on call to nfit.\n'); return; end
+            
             % Check if (remaining) first argument is a valid function or abbreviation
-            if ~isempty(varargin) && (~isempty(makefunction(varargin{1})) || ~isempty(regexpi(varargin{1},'^GAUSS\d*$')) || ~isempty(regexpi(varargin{1},'^LORENTZ\d*$')))
+            if ischar(varargin{1}) && ~any(strtrim(varargin{1})==' ') && ...
+                    (~isempty(makefunction(varargin{1})) || ~isempty(regexpi(varargin{1},'^GAUSS\d*$')) || ~isempty(regexpi(varargin{1},'^LORENTZ\d*$')))
                 varargin = [{'fitfunction'}, varargin]; 
             end
 
@@ -306,10 +321,13 @@ classdef nfit < handle
                 if any(strcmpi('details',varargin)), fprintf('For fitting, zero errorbars are replaced by a finite number (smallest errorbar found in dataset).\n'); end
                 if all(zeroerr), hobj.yerror=hobj.yerror+eps; else hobj.yerror(zeroerr) = min(hobj.yerror(~zeroerr)); end
             end
+            % constraint string
+            constr = []; 
+            if ~isempty(hobj.constraints), constr = hobj.constraints{1}; for c=2:length(hobj.constraints), constr=[constr,';',hobj.constraints{c}]; end, end %#ok<AGROW>
             % Fit            
             try
                 [~,hobj.parameters.values,hobj.parameters.errors,hobj.optimization.paramoutput,~,hobj.optimization.chi2] = ...
-                    funcfit(hobj.fitfunction.call, hobj.xdata, hobj.ydata, hobj.yerror, hobj.parameters.values, ~hobj.parameters.fixed, 'constraint', strjoin(hobj.constraints,';')) ; 
+                    funcfit(hobj.fitfunction.call, hobj.xdata, hobj.ydata, hobj.yerror, hobj.parameters.values, ~hobj.parameters.fixed, 'constraint', constr) ; 
             catch err            
                 fprintf('Error while fitting: %s. -> Exit.\n', err.message);
                 return;
@@ -337,7 +355,7 @@ classdef nfit < handle
             else
                 try
                     for ind=1:nargin-1
-                        pstr = strsplit(strtrim(varargin{ind}),'=');
+                        pstr = regexpmatch(strtrim(varargin{ind}),'[^=]+'); % (replaces strsplit(strtrim(varargin{ind}),'=');)
                         hobj.setparam(str2double(pstr{1}(pstr{1}>='0' & pstr{1}<='9')), str2double(pstr{2}));
                     end
                 catch
@@ -346,6 +364,7 @@ classdef nfit < handle
             end
             hobj.optimization = []; % reset optimization info          
             notify(hobj,'nfitupdate');  % Notifiy changes to evtl. NfitGui
+            hobj.plot;
             % ** if constraints, evtl check if values consistent with it
         end
         
@@ -353,12 +372,14 @@ classdef nfit < handle
         function hobj = fix(hobj,ind)
             % hold one or several parameters fixed
             if isnumeric(ind), hobj.parameters.fixed(intersect(1:end,ind)) = 1; end
+            notify(hobj,'nfitupdate');  % Notifiy changes to evtl. NfitGui
         end
         
         %% Unfix a parameter
         function hobj = clear(hobj,ind)
             % release one or several parameters
             if isnumeric(ind), hobj.parameters.fixed(intersect(1:end,ind)) = 0; end
+            notify(hobj,'nfitupdate');  % Notifiy changes to evtl. NfitGui
         end
         
         %% Add a constraint
@@ -366,10 +387,11 @@ classdef nfit < handle
             % Add one or several constraint strings
             for ci = 1:nargin-1
                 if ischar(varargin{ci})
-                    cc = strsplit(varargin{ci},';');
+                    cc = regexpmatch(varargin{ci},'[^;]+'); % (replaces strsplit(varargin{ci},';');)
                     hobj.constraints = [hobj.constraints, cc];
                 end
             end
+            notify(hobj,'nfitupdate');  % Notifiy changes to evtl. NfitGui
         end
         
         %% Remove a constraint
@@ -378,6 +400,7 @@ classdef nfit < handle
             if isnumeric(ncon)
                 hobj.constraints = hobj.constraints(setdiff(1:end,ncon));
             end
+            notify(hobj,'nfitupdate');  % Notifiy changes to evtl. NfitGui
         end
         
         %% Plot fit line
@@ -408,7 +431,7 @@ classdef nfit < handle
                     bg.x = hobj.fitline.x;
                     bg.y = bgfunc(hobj.parameters.values(ismember(hobj.parameters.belongtocomponent,find(bgcomp))),hobj.fitline.x);
                     bg.handle = plot(hobj.graphhandle, bg.x, bg.y, 'tag', 'background');
-                    bg.plotstyle = struct('color','k','linewidth',1,'linestyle','--');
+                    bg.plotstyle = struct('color',hobj.fitline.plotstyle.color,'linewidth',1,'linestyle','--');
                     hobj.graphelements{end+1} = bg;
                 end
                     % ** Make a plot of more individual components ... (according "tag")

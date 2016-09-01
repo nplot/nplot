@@ -23,6 +23,8 @@ if ~iscell(filelist), h{1}=filelist; filelist=h; clear h; end  % ensure cell arr
 
 %% Check if files exist in local directory
 
+fileok = true;
+
 for fn=1:length(filelist)
     % check if file is there
     fileok(fn) = ~isempty(dir(filelist{fn})); %#ok<*AGROW>
@@ -99,7 +101,7 @@ if ~any(strcmpi(input('Do you want to use these files? ([y]/n)','s'),{'y',''})),
 
 % Create file list and check for double filenames
 try
-    loadlist = strsplit(ou);
+    loadlist = regexpmatch(ou,'\S+');
     loadlist = loadlist(1:(end-1));
 catch
     fprintf('Error on evaluating output from datafile.\n'); return;

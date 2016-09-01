@@ -7,6 +7,7 @@ function param = startvalgauss(x,y,n)
 % P. Steffens, 10/2008
 
 
+if numel(x)~=numel(y) || numel(y)<2, param=nan; return; end
 np = numel(x);
 [x,i] = sort(x,'ascend');
 y = y(i); x=x(:);

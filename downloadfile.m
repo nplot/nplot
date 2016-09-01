@@ -49,10 +49,13 @@ if re ~= 0
     if ~isempty(ou), fprintf('%s\n',ou); end
     if nargout > 0, success = zeros(1,length(name)); end
 else
-    fnstr = strjoin(name,', ');
     fprintf('File(s) copied from %s:\n',server);
-    i=0; while i<length(fnstr), fprintf('%s\n',fnstr(i+1:min([end,i+80]))); i=i+80; end
-        
+    j=0;
+    for i=1:length(name)
+        fprintf('%s ',name{i}); j=j+numel(name{i})+1; if j>80, fprintf('\n'); j=0; end
+    end
+    fprintf('\n');    
+    
     if nargout>0
         % Check for success (check only if filenames present)
         for fn=1:length(name)

@@ -34,17 +34,17 @@ for nl = 1:nlines
     % Bring everything on left side of equation
     st = findstr(thisline,'=');
     try thisline = [thisline(1:st-1) '-(' thisline(st+1:end-1) ')'];
-    catch fprintf('Error: wrong format in constraint, line %d\n', nl); return; end
+    catch, fprintf('Error: wrong format in constraint, line %d\n', nl); return; end
     
     % Get constants
     P = zeros(1,paramnum); %#ok<NASGU>
     try  eval(['b(nl) = -(' thisline ') ; ']); 
-    catch fprintf('Error: could not interpret constraint, line %d\n', nl); A = []; b = []; return; end
+    catch, fprintf('Error: could not interpret constraint, line %d\n', nl); A = []; b = []; return; end
     
     % Get coefficients
     P = eye(paramnum); %#ok<NASGU>
     try eval(['A(nl,:) = (' thisline ')'' + b(nl) ; ']);
-    catch fprintf('Error: could not interpret constraint, line %d\n', nl); A = []; b = []; return; end
+    catch, fprintf('Error: could not interpret constraint, line %d\n', nl); A = []; b = []; return; end
     
 end
 

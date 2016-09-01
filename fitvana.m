@@ -29,7 +29,7 @@ for i = 1:31
     plot(energy, y, '-r');
     hold;
     title(['Channel ' num2str(i)]);
-    waitforbuttonpress;
+    pause;
 end
 
 close(f);

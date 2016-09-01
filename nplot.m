@@ -365,7 +365,7 @@ for scannr = 1:length(scans)
             if nargout, avgdata = []; else clear avgdata; end; return;
         end        
     elseif isfield(scan,'POLAN')
-        if (scannr>1) && ~data.polarized, fprintf('Error: Trying to combine non-polarized with polarized data.\n'); if nargout, avgdata = []; else clear avgdata; end; return; end
+        if (scannr>1) && ~data.polarized, fprintf('Error (in %s): Trying to combine non-polarized with polarized data.\n',scan.FILE); if nargout, avgdata = []; else clear avgdata; end; return; end
         data.polarized = true;
         % Analyze the information in POLAN and create (append) the list of
         % PAL-Definitions (paldeflist)
@@ -579,7 +579,13 @@ for nd = 1:ndim
     dist_nd = data.coordlist(:,nd) - pproj_nd;
     good = good & (abs(dist_nd) <= maxdist(nd));
 end
-if any(~good) && ~nooutput, fprintf('** %d data points that are not on the scan path have been discarded.\n', sum(~good)); end
+if any(~good) && ~nooutput 
+    fprintf('** %d data points that are not on the scan path have been discarded.\n', sum(~good)); 
+    if showdetails
+        fprintf('Scan path defined by (%s) + x*(%s).\n',num2str(startpoint,'%6.4f '),num2str(gridstep,'%6.4f '));
+        fprintf('First rejected points are:\n'); disp(num2str(data.coordlist(find(~good,3),:),'%6.4f '));
+    end
+end
 
 
 % Retain those points that are in the range and on the scan line
@@ -737,8 +743,8 @@ for chnum = whichchan
 end
 
 % ggf. interpret pstyle, legtext:
-if ischar(pstyle), try pstyle = eval(pstyle); catch end; end %#ok<*SEPEX>
-if ischar(legtext), try legtext = eval(legtext); catch end; end
+if ischar(pstyle), try pstyle = eval(pstyle); catch, end; end %#ok<*SEPEX>
+if ischar(legtext), try legtext = eval(legtext); catch, end; end
 
 % define standard legend text
 stdlegtext = files;  posqestring = '';
@@ -866,8 +872,16 @@ if ~isempty(funcname)
         if isempty(dplot{np}), continue; end
         if ~nooutput, fprintf('** Fitting dataset %d to function: ', np); end
                     % *** !!
-        fitobj{np} = nfit(gca,varargin{:},'fitfunction',funcname);
-%         fitobj{np}.fit;
+        flcolor='r';
+        if isfield(dplot{np},'plotstyle')
+            if isfield(dplot{np}.plotstyle,'color'), flcolor = dplot{np}.plotstyle.color;
+            elseif any(dplot{np}.plotstyle(end)=='ymcrgbwk'), flcolor = dplot{np}.plotstyle(end); end
+        end
+                    
+        fitobj{np} = nfit('graphhandle',axhandle,varargin{:}, 'fitfunction',funcname, ...
+                'xdata', dplot{np}.coordlist(:,plotvar),'ydata',dplot{np}.valuelist(:,1),'yerror',dplot{np}.valuelist(:,2), ...
+                'linecolor', flcolor);
+%         fitobj{np}.plot;
         
         % Fill fitresult output structre
         nparam = numel(fitobj{np}.parameters.values);
@@ -877,7 +891,21 @@ if ~isempty(funcname)
         
         fitresult.fitvalues = fitobj{np}.fitfunction.call(fitobj{np}.parameters.values,dplot{np}.coordlist(:,plotvar));
         
+        % plus some more, to make it more compatible with the (original) nfit objects   ** pass directly nfit object??
+        fitresult.parameters = fitobj{np}.parameters;
+        if isempty(fitobj{np}.fitline.x)
+            fitobj{np}.fitline.x = linspace(min(fitobj{np}.xdata),max(fitobj{np}.xdata),1000);                % x-values;
+            fitobj{np}.fitline.y = fitobj{np}.fitfunction.call(fitobj{np}.parameters.values, fitobj{np}.fitline.x); % y-values
+        end
+        fitresult.fitline = fitobj{np}.fitline;
+        
     end   
+    
+    % Write parameters in the graph window
+    if any(strcmpi(varargin,'showfit'))
+        xl = xlim(gca); yl = ylim(gca);
+        text(xl(1),yl(2),fitobj{np}.optimization.paramoutput,'verticalalignment','top','fontname','courier','tag','fitresults');
+    end
     
     % evtl. save nfit objects in figure's guidata
     if ~strcmpi(axhandle, 'none') 

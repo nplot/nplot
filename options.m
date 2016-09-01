@@ -178,7 +178,7 @@ plotopt.interpolationalgorithm = 'natural';
 plotopt.showcells = false;   % Display edges of Voronoi cells?
 plotopt.showcoordpoints = false; % Display coordinates of measured points?
 plotopt.preferHKL = true;   % HKL coords rather than Angstroms?
-plotopt.axisHKL = false;  % In q-plots, use HKL rather than rec.Ang. if possible?
+plotopt.axisHKL = true;  % In q-plots, use HKL rather than rec.Ang. if possible?
 
 
 

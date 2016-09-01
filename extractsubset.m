@@ -55,7 +55,7 @@ if strcmpi(field,'pallist')
     end
     erg.plotstyle.MarkerFaceColor = 'none';
     if ~isempty(strfind(erg.legend,'F1 on')) || ~isempty(strfind(erg.legend,'I9 -')), erg.plotstyle.Marker = 's'; end
-    if ~isempty(strfind(erg.legend,'F2 on')) || ~isempty(strfind(erg.legend,'I10 -')), erg.plotstyle.MarkerFaceColor = erg.plotstyle.color; end
+    if ~isempty(strfind(erg.legend,'F2 on')) || ~isempty(strfind(erg.legend,'FLIPPER on')) || ~isempty(strfind(erg.legend,'I10 -')), erg.plotstyle.MarkerFaceColor = erg.plotstyle.color; end
 end
     
 erg.type = data.type;

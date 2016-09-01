@@ -72,7 +72,7 @@ if nargin>3 && isa(varargin{1},'nfit')      % is nfit object
     handles.nfitobj = varargin{1};
 else
     axhandle = readinput('actualaxes',varargin);
-    if isempty(axhandle) && nargin>3 && ishandle(varargin{1}) && strcmpi(get(varargin{1},'type'),'axes')
+    if isempty(axhandle) && nargin>3 && isgraphics(varargin{ 1 },'axes')  
         axhandle = varargin{1};
     end
     % check if axes have an nfit object attached (in guidata)
@@ -94,7 +94,7 @@ if isfield(handles,'nfitobj') && isempty(handles.nfitobj.xdata) %|| isempty(hand
     if newobject, delete(handles.nfitobj); end 
     delete(hObject); return;
 elseif ~isfield(handles,'nfitobj')
-	fprintf('Error on opneing nfitgui: Could not set up fitting.\n'); delete(hObject); return;
+	fprintf('Error on opening nfitgui: Could not set up fitting.\n'); delete(hObject); return;
 end
 % Initialize...
 handles.selectedfunctionindex = [];
@@ -192,7 +192,7 @@ if eventdata.Indices(2)==5  % check box
     handles.nfitobj.parameters.fixed(eventdata.Indices(1)) = ~handles.nfitobj.parameters.fixed(eventdata.Indices(1));
 elseif eventdata.Indices(2)==3 && ~isempty(eventdata.NewData) 
     handles.nfitobj.setparam(eventdata.Indices(1),eventdata.NewData); 
-    handles.nfitobj.plot;
+%     handles.nfitobj.plot;
 end
 
 

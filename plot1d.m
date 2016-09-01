@@ -13,7 +13,7 @@ function plot1d(list,varargin)
 %   .x, .y, .dy, .axhandle, .plothandle, (.mlist), (.tlist), (.legendtext)
 % - updates the data cursor display of the figure window appropriately
 
-% P. Steffens, 01/2015
+% P. Steffens, 03/2015
 
 
 if ~iscell(list), m = list; clear list; list{1}=m;  clear m; end % ensure cell array
@@ -89,8 +89,16 @@ for num = 1:length(list)
         if isempty(legend(gca))
             legend(h, list{num}.legend); 
         else % get current legend and add new entry
-            [~, ~, plot_h,text_strings]= legend(gca); 
-            legend([plot_h',h],[text_strings, {list{num}.legend}]);
+            if verLessThan('matlab','8.4') %<R2014b
+                [~, ~, legobjs,text_strings]= legend(gca); 
+            else % new syntax of Matlab legend command
+                ax = gca;
+                legobjs = findobj(ax.Children,'flat','-regexp','Displayname','\S+');
+                text_strings = {};
+                for j=1:numel(legobjs), text_strings{j} = legobjs(j).DisplayName; end %#ok<AGROW>
+                legobjs = legobjs(end:-1:1); text_strings = text_strings(end:-1:1);
+            end
+            legend([legobjs', h], [ text_strings, {list{num}.legend}, ]);
         end
     end
     

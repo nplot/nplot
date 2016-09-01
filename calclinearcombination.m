@@ -33,7 +33,7 @@ try
     if ~nooutput, fprintf(['** Calculating pal-combination. (Works only for linear combinations.) Coefficients are ' num2str(pcoeff(:)','%g  ') '\n']); end
 catch
     em = lasterror;
-    fprintf(['Error during calculation: ''' em.message '''  --> Check input! \n']); data = []; errrostate = true; return; 
+    fprintf(['Error during calculation: ''' em.message '''  --> Check input! \n']); data = []; errorstate = true; return; 
 end
 % Use 'scaledata' and 'subtractdata' to do the linear combination
 cind = find(pcoeff);
