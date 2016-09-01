@@ -38,7 +38,8 @@ persistent optionsvalues;
 % .lastversionchecktime: serial date(time) of last check if optionsvalues is up to date
 % .optionsfilename:      name and path of options.m used for last update 
 
-dnn = datenum(now);
+dnn = now;
+
 if ~isempty(optionsvalues) && dnn - optionsvalues.lastversionchecktime > 5E-5  
 % (do this check only once every 5sec. to avoid too many calls to the following lines)
     % Check if current file on disk is the same version as the values in memory
@@ -80,12 +81,24 @@ end
 for i = lookfor
      
     try
-        [name,rem] = strtok(varargin{i},'.');
-        varargout{i} = optionsvalues.(name);
-        while ~isempty(rem)  % in case varargin{i} asks for the field of a struct, like aaa.bbb
-            [name,rem] = strtok(rem,'.'); %#ok<STTOK>
-            varargout{i} = varargout{i}.(name);
+        if all(varargin{i}~='.')
+            varargout{i} = optionsvalues.(varargin{i});
+        else
+            istr = varargin{i};
+            pp = find([istr,'.']=='.');
+            varargout{i} = optionsvalues.(istr(1:pp(1)-1));
+            for pi = 1:numel(pp)-1
+                varargout{i} = varargout{i}.(istr(pp(pi)+1:pp(pi+1)-1));
+            end
         end
+        
+%   * replaced the following         
+%         [name,rem] = strtok(varargin{i},'.');
+%         varargout{i} = optionsvalues.(name);
+%         while ~isempty(rem)  % in case varargin{i} asks for the field of a struct, like aaa.bbb
+%             [name,rem] = strtok(rem,'.'); %#ok<STTOK>
+%             varargout{i} = varargout{i}.(name);
+%         end
     catch
         varargout{i}=[];
         fprintf('Warning: Variable name  %s  not found in options file during call to getoption.\n',varargin{i});

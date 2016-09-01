@@ -56,7 +56,7 @@ function [avgdata,fitresult] = nplot(files, varargin)
 %   avgdata:   list of binned and averaged data
 %   fitresult: If a fit has ben performed, result of fit parameters
 
-% P. Steffens, 7/2013
+% P. Steffens, 2/2015
 
 
 
@@ -70,7 +70,7 @@ knownswitches = {'overplot','details','nobin','nooutput','nolegend','noplot','sh
 % Set output options
 if any(strcmpi(varargin,'details')), showdetails=true; else showdetails=false; end  % Detailed output? 
 if any(strcmpi(varargin,'nooutput')), nooutput=true; else nooutput=false; end  % Suppress all output?
-
+warningstring =[];
 
 % Restore parameters from previous call of nplot if necessary, and store new ones
 persistent lastnplotparams
@@ -96,7 +96,7 @@ for tr = 1:size(translate,1)
     if isempty(rest), rest = {}; end 
     varargin = rest; 
     for r=1:length(val)
-        varargin = {varargin{:}, translate{tr,2}, val{r}};
+        varargin = [varargin, translate(tr,2), val(r)];
     end
     if ~isempty(val) && showdetails
         fprintf('Option name %s has been replaced by %s\n', translate{tr,1}, translate{tr,2});
@@ -177,9 +177,9 @@ if any(strcmpi(data.variables,'realtime')) % special case, calculate this via ge
     end
     for ns = 1:length(scans)
         scans{ns}.DATA.REALTIME = getvar(scans{ns},'realtime');
-        scans{ns}.DATA.columnames = {scans{ns}.DATA.columnames{:},'REALTIME'};
+        scans{ns}.DATA.columnames = [scans{ns}.DATA.columnames, {'REALTIME'}];
     end
-    varargin = {varargin{:}, 'nobin'}; % do no binning in this case
+    varargin = [varargin, {'nobin'}]; % do no binning in this case
     userealtime = true;
 end
 
@@ -191,7 +191,7 @@ if isempty(yvar)
     specialyvar = false;
 else
     specialyvar = true;
-    varargin = {varargin{:}, 'nobin'};
+    varargin = [varargin, {'nobin'}];
     if showdetails
         fprintf('Use column %s for y-axis. Errors are set to NaN.\n', yvar);
     end    
@@ -210,7 +210,7 @@ else
             if ~isfield(scan1.(yvarsec),yvar) && isfield(scan1.(yvarsec),upper(yvar)), yvar = upper(yvar); end  % check if upper case may be better
             for ns = 1:length(scans)
                 scans{ns}.DATA.([yvarsec,'__',yvar])= scans{ns}.(yvarsec).(yvar) * ones(size(scans{ns}.DATA.PNT));
-                scans{ns}.DATA.columnames = {scans{ns}.DATA.columnames{:}, [yvarsec,'__',yvar] };
+                scans{ns}.DATA.columnames = [scans{ns}.DATA.columnames, {[yvarsec,'__',yvar]} ];
             end
             yvar = [yvarsec,'__',yvar];
         catch
@@ -225,7 +225,7 @@ end
 
 fcufile = false;
 for ns = 1:length(scans)
-    if ~isempty(regexp(upper(scans{ns}.COMND),'\sFCU\s', 'once' ))
+    if isfield(scans{ns},'COMND') && ~isempty(regexp(upper(scans{ns}.COMND),'\sFCU\s', 'once' ))
     % Change a bit the format of DATA in order to treat it the usual way
     % (one count per line)
         fcufile = true;
@@ -296,7 +296,7 @@ data.multichannel = false; % for multidetectors like IMPS
 data.raw = 1;
 data.type = 'General scan';
 data.coordtype = 'general';
-data.expname = [];
+data.expname = '';
 if isfield(scan1,'TITLE'), data.expname = scan1.TITLE; end
 data.dataname = files;
 
@@ -404,7 +404,7 @@ for scannr = 1:length(scans)
                 if nargout, avgdata = []; else clear avgdata; end; return; 
             end
             if any(strcmpi(yvar,{'M1','M2'}))
-                fprintf('Using normalized %s on y-axis and sqrt as error. (Attention if using divider!)\n',yvar);
+                if ~nooutput, warningstring = ['Using normalized ', yvar,' on y-axis and sqrt as error. (check if using divider)']; end
                 data.valuelist = [data.valuelist; monval * [scan.DATA.(yvar) ./ scan.DATA.(moncolumn), sqrt(scan.DATA.(yvar)) ./ scan.DATA.(moncolumn)]];
             else
                 data.valuelist = [data.valuelist; scan.DATA.(yvar), nan(size(scan.DATA.(yvar)))];
@@ -425,12 +425,15 @@ for scannr = 1:length(scans)
     
 end %Scan loop
 
+if ~isempty(warningstring), fprintf('%s\n',warningstring); warningstring =[]; end %#ok<NASGU>
+
 if showdetails
     fprintf('Input data is ');
     if data.polarized, fprintf('polarized '); else fprintf('not polarized '); end
     if data.multichannel, fprintf('and multi-detector (sort by: %s). ',channelname); else fprintf('and single-detector. '); end
     fprintf('Total number of data points found: %d in %d scans. \n', size(data.coordlist,1), scannr);
 end
+
 
 %% Bin automatically?
 if scannr==1
@@ -462,7 +465,7 @@ if ~isempty(selection)
         data.valuelist = data.valuelist(goodlines, :);
         if data.polarized, data.pallist = data.pallist(goodlines); end
         if data.multichannel, data.channellist = data.channellist(goodlines); end
-        data.taglist = {data.taglist{goodlines}};
+        data.taglist = data.taglist(goodlines);
         if isfield(data,'dataname'), data.dataname = [selection ': ' data.dataname]; end
         if ~nooutput, fprintf(['Retain only points with %s = ' num2str(selval) '.\n'], selname); end
 
@@ -585,7 +588,7 @@ data.monitorlist = data.monitorlist(inrange&good, :);
 data.valuelist = data.valuelist(inrange&good, :);
 if data.polarized, data.pallist = data.pallist(inrange&good); end
 if data.multichannel, data.channellist = data.channellist(inrange&good); end
-data.taglist = {data.taglist{inrange&good}};
+data.taglist = data.taglist(inrange&good);
 lambdai = lambdai(inrange&good); %(use the lambdai below)
 
 
@@ -662,63 +665,12 @@ avgdata.polarized = data.polarized;
 avgdata.multichannel = data.multichannel;
 
 
-
-% 
-% if data.polarized    
-%     % for simplicity, use pal as additional coordinate
-%     data.coordlist = [data.pallist,data.coordlist]; 
-%     palgridpoints=zeros(0,size(gridpoints,2)+1);
-%     for p = unique(data.pallist)'
-%         palgridpoints = [palgridpoints; p*ones(size(gridpoints,1),1), gridpoints];
-%     end    
-%     %avgdata = cmbavg(data, 'standard', 'grid', [1,gridstep], 'monitor', monval, 'bin', 0);
-%     avgdata = cmbavg(data, 'explicit', palgridpoints, 'monitor', monval, 'bin', [1,inf(size(gridstep))]);
-%     avgdata.pallist   = avgdata.coordlist(:,1);
-%     avgdata.coordlist = avgdata.coordlist(:,2:end);
-%     avgdata.paldeflist = data.paldeflist;
-%     avgdata.polarized = true;
-% else
-%     %avgdata = cmbavg(data, 'standard', 'grid', gridstep, 'monitor', monval, 'bin', 0);
-%     avgdata = cmbavg(data, 'explicit', gridpoints, 'monitor', monval, 'bin', inf(size(gridstep)));
-%     avgdata.polarized = false;
-% end
-
 %% Calculate pal-Combination?
 calcstring = upper(readinput('calc',varargin,'last'));
 if ~isempty(calcstring) && avgdata.polarized
     
-    [avgdata, errorstate] = calclinearcombination(avgdata, calcstring, 'output',~nooutput, 'dist', gridstep);
+    [avgdata, errorstate] = calclinearcombination(avgdata, calcstring, 'output',nooutput, 'dist', gridstep);
     if errorstate, if nargout, avgdata = []; else clear avgdata; end; return; end
-    
-%     [st,en] = regexp(calcstring, 'PAL\d+'); %find all PALx entries in calcstring
-%     for i=numel(st):-1:1
-%         % Convert calcstring in matlab readable string (PALx --> PAL(:,x))
-%         calcstring = [ calcstring(1:st(i)+2) '(:,' calcstring(st(i)+3:en(i)) ')' calcstring(en(i)+1:end) ];
-%     end
-%     % Find coefficients for each PAL-column
-%     PAL = eye(max(avgdata.pallist)); %#ok<NASGU>
-%     pcoeff = [];
-%     try
-%         eval(['pcoeff = ' calcstring ';']);
-%         if ~nooutput, fprintf(['** Calculating pal-combination. (Works only for linear combinations.) Coefficients are ' num2str(pcoeff(:)','%g  ') '\n']); end
-%     catch
-%         em = lasterror;
-%         fprintf(['Error during calculation: ''' em.message '''  --> Check input! \n']); if nargout, avgdata = []; else clear avgdata; end; return; 
-%     end
-%     % Use 'scaledata' and 'subtractdata' to do the linear combination
-%     cind = find(pcoeff);
-%     comb = scaledata( extractsubset(avgdata,'pallist',cind(1)), pcoeff(cind(1)) );
-%     if ~nooutput, fprintf('%s \n', comb.legend); end
-%     for i = 2:numel(cind)
-%         nextdat = extractsubset(avgdata,'pallist',cind(i));
-%         comb = subtractdata( comb, scaledata(nextdat , -pcoeff(cind(i)) ), 'nearest', abs(gridstep) );
-%         if ~nooutput, fprintf('%s \n', nextdat.legend); end
-%     end
-%     avgdata = comb;
-%     avgdata.polarized = false;
-%     if isfield(avgdata,'taglist'), avgdata = rmfield(avgdata,'taglist'); end
-%     avgdata.legend = readinput('calc',varargin,'last');
-
 end
 
 %% Calculate x or y-transform
@@ -759,10 +711,9 @@ end
 
 pstyle = readinput('plotstyle',varargin,'last');
 legtext = readinput('legend',varargin,'last');
-yoffset = readinput('offset',varargin,'last'); if isempty(yoffset), yoffset = 0; end
-
 
 numplots = 0;  % enumerate the data sets to plot
+
 
 if avgdata.multichannel 
     whichchan = unique(avgdata.channellist)';
@@ -785,12 +736,36 @@ for chnum = whichchan
     end
 end
 
-% If some plotstyle or legends explicitly given, assign them:
+% ggf. interpret pstyle, legtext:
 if ischar(pstyle), try pstyle = eval(pstyle); catch end; end %#ok<*SEPEX>
 if ischar(legtext), try legtext = eval(legtext); catch end; end
+
+% define standard legend text
+stdlegtext = files;  posqestring = '';
+% for Q- or E-Scans determine what is constant
+if length(data.variables)==4 && all(strcmpi(data.variables,{'QH','QK','QL','EN'})) && size(avgdata.coordlist,1)>0
+    % use values from scan command rather than read out (positioning error on last digits)
+    if isfield(scan1,'COMND')
+        [st,en]=regexpi(scan1.COMND,'(?<=qh\s+)([\d\s\.\-]+)(?=dqh)');
+        posqe = str2num(scan1.COMND(st:en)); %#ok<ST2NM>
+    else posqe = mean(avgdata.coordlist,1);
+    end
+    if all(max(abs([avgdata.coordlist(:,1)-posqe(1),avgdata.coordlist(:,2)-posqe(2),avgdata.coordlist(:,3)-posqe(3)]),[],1)<=2*maxdist(1:3))
+        posqestring = num2str(posqe(1:3),'Q = (%g, %g, %g)'); % Q constant 
+    elseif max(abs(avgdata.coordlist(:,4)-posqe(4))) <=2*maxdist(4) % E constant
+        posqestring = num2str(posqe(4), 'E = %g');
+        if isfield(scan1,'POSQE') && isfield(scan1.POSQE,'UN'), posqestring = [posqestring, ' ', scan1.POSQE.UN]; end
+    end
+end
+if ~isempty(posqestring), stdlegtext = [files, '; ', posqestring]; end
+
+% assign legtext and pstyle to dplot structs
 for np=1:numplots
    if ~isempty(pstyle),  if iscell(pstyle),  dplot{np}.plotstyle = pstyle{mod(np-1, length(pstyle)) +1}; else dplot{np}.plotstyle=pstyle; end; end
-   if ~isempty(legtext), if iscell(legtext), dplot{np}.legend   = legtext{mod(np-1, length(legtext))+1}; else dplot{np}.legend=legtext;   end; end
+   if ~isempty(legtext), if iscell(legtext), dplot{np}.legend   = legtext{mod(np-1, length(legtext))+1}; else dplot{np}.legend=legtext;   end; 
+   elseif (~isfield(dplot{np},'legend') || isempty(dplot{np}.legend)) && ~any(strcmpi(varargin,'nolegend'))
+       dplot{np}.legend  = stdlegtext; % use standard text if no other provided 
+   end
 end
 
     
@@ -809,25 +784,43 @@ if any(strcmpi(varargin,'overplot')), axhandle = gca; end
 if any(strcmpi(varargin,'noplot')), axhandle = 'none'; end
 
 if ~strcmpi(axhandle, 'none')
+    if isempty(axhandle), figure;     axhandle = axes;  end
     
-    plot1d(dplot,plotvar,axhandle,varargin{:});
+    for axnum = 1:numel(axhandle) % loop if several axes given
     
-    xlabel(data.variables{plotvar});
-    if ~isempty(xtransform), xlabel(strrep(xtransform,'X',data.variables{plotvar})); end
+    % check if plot is empty
+    thesearenewaxes = numel(findobj(get(axhandle(axnum),'children'),'tag','data'))==0; 
     
+    % Do plot
+    plot1d(dplot,'axdim',plotvar,'axhandle',axhandle(axnum),varargin{:});
+    
+    % Label x and y axes
+    xlabeltext = data.variables{plotvar};
+    if ~isempty(xtransform), xlabeltext = strrep(xtransform,'X',data.variables{plotvar}); end
+    oldxlabel = get(get(gca,'xlabel'),'string'); % Check if axis already labelled (e.g. from prev. plot)
+    if ~isempty(oldxlabel) && ~strcmpi(oldxlabel, xlabeltext) && ~nooutput
+        fprintf('Warning: The x-axis label is being changed. Check for consistency.\n');
+    end
+    xlabel(xlabeltext);
+    
+    oldylabel = get(get(gca,'ylabel'),'string'); %(as above for x..)
     if ~specialyvar
         if isempty(ytransform)
-            ylabel(['Counts (' moncolumn ' ' num2str(monval) ')']);
+            ylabeltext = ['Counts (' moncolumn ' ' num2str(monval) ')'];
         else
-            ylabel([strrep(ytransform,'Y','Counts') ' (' moncolumn ' ' num2str(monval) ')']);
+            ylabeltext = [strrep(ytransform,'Y','Counts') ' (' moncolumn ' ' num2str(monval) ')'];
         end
     else
         if isempty(ytransform)
-            ylabel(yvar);
+            ylabeltext = yvar;
         else
-            ylabel(strrep(ytransform,'Y',yvar));
+            ylabeltext = strrep(ytransform,'Y',yvar);
         end 
     end
+    if ~isempty(oldylabel) && ~strcmpi(oldylabel, ylabeltext) && ~nooutput
+        fprintf('Warning: The y-axis label is being changed. Check for consistency (e.g. normalization etc.)\n');
+    end
+    ylabel(ylabeltext);
     
     % if using date and time on x-axis, adjust axis labels
     if strcmpi(data.variables{plotvar},'realtime')
@@ -844,136 +837,54 @@ if ~strcmpi(axhandle, 'none')
                 datetick('x','HH:MM:SS'); xlabel(['Time (on ', datestr(avgdata.coordlist(1,plotvar),'dd mmm yyyy') ,')'] );
         end
     end
+
+    % Set title:
+    % (if new window, or if new title compatible with existing one)
+    oldtitle = get(get(gca,'title'),'string');
+    if  thesearenewaxes || any(strcmpi(oldtitle,files)) 
+        newtitle = files; 
+    else newtitle=''; 
+    end
+    if ~isempty(posqestring) && (thesearenewaxes || any(strcmpi(oldtitle,posqestring)))      
+        if isempty(newtitle), newtitle = posqestring; else newtitle = {newtitle, posqestring}; end
+    end
     
-    title(files,'interpreter','none');
-    if length(data.variables)==4 && all(strcmpi(data.variables,{'QH','QK','QL','EN'})) && size(avgdata.coordlist,1)>0
-        if all(abs(avgdata.coordlist(1,1:3)-avgdata.coordlist(end,1:3))<=2*maxdist(1:3)), title({files, ['Q = (', num2str(mean(avgdata.coordlist(:,1:3),1),'%g, %g, %g'), ')']});  
-        elseif abs(avgdata.coordlist(1,4)-avgdata.coordlist(end,4))<=2*maxdist(4), title({files, ['E = ' num2str(mean(avgdata.coordlist(:,4)),'%g') ]}); 
-        end
+    if ~isempty(newtitle), title(newtitle,'interpreter','none'); else title(''); end
+    if thesearenewaxes && isempty(legtext) && numplots<2, legend hide; 
+    elseif ~any(strcmpi(varargin,'nolegend')), legend show; end
+
     end
 end
 
 %% Fitting
 
 funcname = readinput('fit',varargin,'last');
-if ~isempty(funcname)
-    funcname = strtrim(funcname);
-    % Read start parameters
-    startval = readinput('startval',varargin,'last');
-    
-    % Test if short form for Gaussian Function
-    ngauss = [];
-    [st,en] = regexp(upper(funcname),'^GAUSS\d*$');  
-    if ~isempty(st)
-       ngauss = str2double(funcname(st+5:en)); % number of gaussians
-       if isempty(ngauss), ngauss=1; end
-       funcname = 'fsum(@const';
-       for i=1:ngauss, funcname = [funcname, ',@gaussA']; end
-       funcname = [funcname, ')'];
-    end
-        
-    % Test if short form for Lorenzian Function
-    nlorentz = [];
-    [st,en] = regexp(upper(funcname),'^LORENTZ\d*$');  
-    if ~isempty(st)
-       nlorentz = str2double(funcname(st+7:en)); % number of lorentzians
-       if isempty(nlorentz), nlorentz=1; end
-       funcname = 'fsum(@const';
-       for i=1:nlorentz, funcname = [funcname, ',@lorentzA']; end
-       funcname = [funcname, ')'];
-    end
-    
-    % Simply Linear function?
-    islinear = ~isempty(regexp(upper(funcname),'^LINEAR$','once')); 
-    
-    if funcname(1) ~= '@' && isempty(strfind(funcname,'fsum')) && isempty(strfind(funcname,'fmult')), funcname = ['@',funcname]; end  % Ensure "@" for function handles
-    
-    % Obtain function information
-    eval(['ff=' funcname ';']);
-    try
-        [val, fitresult.paramnames, paramnum] = ff([],[]);
-        if isempty(startval) && isempty(ngauss) && isempty(nlorentz) && ~islinear % no startvalues given, and no Gauss function
-            fprintf('Please give start parameters for fit! Use option ''startval''.\n'); 
-            fprintf('Parameter list: '); for c=1:length(fitresult.paramnames), fprintf('%s ',fitresult.paramnames{c}); end, fprintf('\n'); if nargout, avgdata = []; else clear avgdata; end; return;
-        end
-    catch
-        e=lasterror; msg = e.message;
-        fprintf('Error while trying to call function "%s" (error message below). Do not perform fitting.\n%s\n', funcname(2:end), msg);
-        funcname=[];
-    end    
-    
-end
-if ~isempty(funcname) % continue only if successful until here
-    
-    % Determine which variables are to be fitted
-    varindex = readinput('fitvar',varargin,'last');
-    varindex(numel(varindex)+1 : paramnum) = 1; 
-    
+
+if ~isempty(funcname) 
     % Do the fit for each dataset in dplot
     for np = 1:numplots
         if isempty(dplot{np}), continue; end
-        if isempty(startval)     % guess parameters if not given (Gauss and linear only)
-            if islinear, startval = startvallinear(dplot{np}.coordlist(:,plotvar), dplot{np}.valuelist(:,1)); 
-            elseif ~isempty(ngauss), startval = startvalgauss(dplot{np}.coordlist(:,plotvar), dplot{np}.valuelist(:,1), ngauss);
-            elseif ~isempty(nlorentz), startval = startvalgauss(dplot{np}.coordlist(:,plotvar), dplot{np}.valuelist(:,1), nlorentz); 
-            end
-            if isempty(startval), fprintf('Automatic guess of start parameters failed!\n'); if nargout, avgdata = []; else clear avgdata; end; return; end
-        end
-        % Fitting:       
         if ~nooutput, fprintf('** Fitting dataset %d to function: ', np); end
-        % Check if any zero error bars, and avoid
-        errlist = dplot{np}.valuelist(:,2);
-        zeroerr = errlist==0; 
-        if any(zeroerr)
-            if showdetails, fprintf('For fitting, zero errorbars are replaces by a finite number (smallest errorbar found in dataset).\n'); end
-            if all(zeroerr), errlist=errlist+eps; else errlist(zeroerr) = min(errlist(~zeroerr)); end
-        end
-        % Fit
-        try
-            [fitval,fitresult.optparam(np,1:paramnum),fitresult.errors(np,1:paramnum),paramoutput,~,fitresult.chi2] = ...
-                funcfit(eval(funcname), dplot{np}.coordlist(:,plotvar), dplot{np}.valuelist(:,1), errlist, startval, varindex,varargin{:}) ; 
-%            eval(['funcfit( dplot{np},plotvar,' funcname ',startval,varindex);']);
-        catch
-            e=lasterror; msg = e.message;
-            fprintf('Error while fitting. Exit.\n%s\n', msg);
-            fitresult = []; avgdata = [];
-            return;
-        end   
-            
+                    % *** !!
+        fitobj{np} = nfit(gca,varargin{:},'fitfunction',funcname);
+%         fitobj{np}.fit;
         
-        % Plotting:
-        if ~strcmpi(axhandle, 'none')
-            
-            gdata = guidata(gcf);
-            
-            % Try to find color for line
-            if isfield(dplot{np},'plotstyle')
-                if isfield(dplot{np}.plotstyle,'color'), linecolor = dplot{np}.plotstyle.color; else linecolor = dplot{np}.plotstyle(end); end
-            elseif isfield(gdata,'datahandles') && numel(gdata.datahandles)>=numplots
-                linecolor = get(gdata.datahandles(end-numplots+np),'color');
-            else
-                linecolor = 'k';
-            end
-
-            % Calculate fit line and plot into graph   
-            xvals = linspace(min(dplot{np}.coordlist(:,plotvar)), max(dplot{np}.coordlist(:,plotvar)), 1000);
-            fitline = ff( fitresult.optparam(np,1:paramnum), xvals);     
-            ph = plot(xvals, fitline + yoffset, '-');
-            set(ph, 'Color', linecolor, 'linewidth', 1, 'tag', 'fitline');
-            if isfield(gdata,'fitlinehandles'), gdata.fitlinehandles = [gdata.fitlinehandles, ph]; end
-            fitresult.line.x = xvals;
-            fitresult.line.y = fitline;
-            
-            guidata(gcf,gdata);
-            
-            % Write parameters in the graph window
-            if any(strcmpi(varargin,'showfit'))
-                xl = xlim(gca); yl = ylim(gca);
-                text(xl(1),yl(2),paramoutput,'verticalalignment','top','fontname','courier','tag','fitresults');
-            end
-        end
-    end    
+        % Fill fitresult output structre
+        nparam = numel(fitobj{np}.parameters.values);
+        fitresult.optparam(np,1:nparam) = fitobj{np}.parameters.values;
+        fitresult.errors(np,1:nparam) = fitobj{np}.parameters.errors;
+        fitresult.chi2(np) = fitobj{np}.optimization.chi2;
+        
+        fitresult.fitvalues = fitobj{np}.fitfunction.call(fitobj{np}.parameters.values,dplot{np}.coordlist(:,plotvar));
+        
+    end   
     
+    % evtl. save nfit objects in figure's guidata
+    if ~strcmpi(axhandle, 'none') 
+        figdata = guidata(gcf); 
+        figdata.nfitobj = fitobj;
+        guidata(gcf, figdata);
+    end
 end
 
 %%  

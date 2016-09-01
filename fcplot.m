@@ -772,6 +772,9 @@ function mouseclickonplane(src,evnt)
         
         if ~isfield(plotstruct.scandef,'xdat') || isempty(plotstruct.scandef.xdat) || ~isfield(plotstruct.scandef,'ydat') || isempty(plotstruct.scandef.ydat), return; end
         
+        [planedef.normal, planedef.c] = fithyperplane([ plotstruct.scandef.xdat(1), plotstruct.scandef.ydat(1), 0; ...
+                                                        plotstruct.scandef.xdat(2), plotstruct.scandef.ydat(2), 0; ...
+                                                        plotstruct.scandef.xdat(1), plotstruct.scandef.ydat(1), 1] );        
 %         % The separate sclices have to be identified
 %         if ~isfield(plotstruct,'sectionlist') || isempty(plotstruct.sectionlist)
 %             [~,section] = finddistinctsections(plotstruct.datalist.faces);
@@ -788,14 +791,29 @@ function mouseclickonplane(src,evnt)
         newdata.raw = false;
         if isfield(newdata,'delaunaytri'), newdata = rmfield(newdata,'delaunaytri'); end
         newdata = rmfield(newdata,{'vertexlist','faces','monitorlist'});
-        if strcmpi(plotstruct.type,'qxyz'), newdata.coordtype = 'qxy';
+        if strcmpi(plotstruct.type,'qxyz') 
+            newdata.coordtype = 'qxy';
+            % get vectors defining the new plane (cutplane)
+            newdata.constants = [newdata.constants, 'QVERT'];
+            newdata.QVERT = planedef.c;
+            avec = getplaneparameter([planedef.normal'; 0,0,1],[planedef.c;0]); % horizontal vector in cutplane
+            % ** try to make it point in right direction... ( to be generalized)
+            if (abs(avec(1))>abs(avec(2)) && avec(1)<0) || (abs(avec(2))>abs(avec(1)) && avec(2)<0), avec=-avec; end
+            bvec = cross(avec,planedef.normal);
+            UB = UBmatrix(plotstruct.sampleinfo.lattice, plotstruct.sampleinfo.ax, plotstruct.sampleinfo.bx );
+            newdata.sampleinfo.ax = makeinteger((UB\avec)',1e-4);
+            newdata.sampleinfo.bx = makeinteger((UB\bvec)',1e-4);            
         elseif strcmpi(plotstruct.type,'qxqyen'), newdata.coordtype = 'qeplane'; 
         end
         
         [stdgrid] = getoption('stdgrid'); stdgrid = stdgrid.(upper(plotstruct.type));
         [ndata, ~, ~, pointinds, vertinds] = slicecounting(plotstruct.datalist);
         
-        % Principle (simplified): use first two coordinates, ignore third. % ** Have to generalize this!
+        % Principle (simplified): use first two coordinates, ignore third. 
+        % ** Have to generalize this!
+        % ** Question: what to use as the x-axis?? 
+        % ** (at least for 3d-Q cuts this is not always ok!)
+        
         % For each of these slices
         tempplotstruct = plotstruct;
         tempplotstruct = rmfield(tempplotstruct,'datalist'); tempplotstruct.datalist{1} = plotstruct.datalist{1};
@@ -829,10 +847,8 @@ function mouseclickonplane(src,evnt)
         
         if nonconstcount>0, fprintf('Warning: The third coordinate is not always constant. This is neglected in the calculation!\n'); end
                       
-        % Add a this plane to plotstruct  (Vertical plane)
-        [planedef.normal, planedef.c] = fithyperplane([ plotstruct.scandef.xdat(1), plotstruct.scandef.ydat(1), 0; ...
-                                                        plotstruct.scandef.xdat(2), plotstruct.scandef.ydat(2), 0; ...
-                                                        plotstruct.scandef.xdat(1), plotstruct.scandef.ydat(1), 1] );
+        % Add a this plane to plotstruct
+
         planedef.properties = {'FaceColor','r','FaceAlpha',.35,'Tag','cutplane','ButtonDownFcn',@mouseclickonplane}; %** use options.m for this?
         if ~isfield(plotstruct,'planedef'), plotstruct.planedef = {}; end
         plotstruct.planedef = [plotstruct.planedef, planedef];
@@ -956,11 +972,22 @@ function mouseclickonplane(src,evnt)
         if isempty(answ), return; end
         qxy = translateinput(answ);
         if isempty(qxy), return; end
-        plotstruct.scandef.xdat = [qxy{1}(1), qxy{2}(1)];
-        plotstruct.scandef.ydat = [qxy{1}(2), qxy{2}(2)];
+%         plotstruct.scandef.xdat = [qxy{1}(1), qxy{2}(1)];
+%         plotstruct.scandef.ydat = [qxy{1}(2), qxy{2}(2)];
+        if any(strcmpi(plotstruct.scandef.type,{'Projection','Integration'})), framevec = qxy{3}-qxy{1}; else framevec = [0,0]; end
+        if isfield(plotstruct,'qvert')
+            xydat = makeliststruct([qxy{1}; qxy{2}; framevec],[],'coordtype','qxy','sampleinfo',plotstruct.sampleinfo,'QVERT',plotstruct.qvert);
+        else
+            xydat = makeliststruct([qxy{1}; qxy{2}; framevec],[],'coordtype','qxy','sampleinfo',plotstruct.sampleinfo,'QVERT',0);
+        end
+        % Transform to figure coordinate system:  ** make this more general.
+        % if hkl:
+        if strcmpi(plotstruct.type,'hklvectors'), xydat = coordtransform(xydat, 'hklvectors'); end
+        if isempty(xydat), return; end
+        plotstruct.scandef.xdat = xydat.coordlist(1:2,1)';
+        plotstruct.scandef.ydat = xydat.coordlist(1:2,2)';    
         if any(strcmpi(plotstruct.scandef.type,{'Projection','Integration'}))
-            framevec = qxy{3}-qxy{1};
-            plotstruct.scandef.framevec = framevec;
+            plotstruct.scandef.framevec = xydat.coordlist(3,:);
         end
         
         [ndata, ~, ~, ~, vertinds] = slicecounting(plotstruct.datalist);

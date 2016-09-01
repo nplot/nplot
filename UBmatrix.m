@@ -28,7 +28,8 @@ t2 = ref2(1)*astar + ref2(2)*bstar + ref2(3)*cstar;
 t2 = t2 - t1 * (t1'*t2);
 t2 = t2 / sqrt(t2'*t2);
 %complete right-hand orthogonal system
-t3 = cross(t1,t2);
+% t3 = cross(t1,t2);
+t3 = [t1(2)*t2(3)-t1(3)*t2(2); t1(3)*t2(1)-t1(1)*t2(3); t1(1)*t2(2)-t1(2)*t2(1)];
 
 Tc = [t1, t2, t3];
 

@@ -62,10 +62,10 @@ normval = 4000;
 % Data transfer
 %---------------------------
 
-knownservers = {'in3','in8','in12','in14','in20'};
+knownservers = {'in3','in8','in12','thales','in20'};
 defaultdirectory = '/users/data';
-defaultserver = 'in20';
-defaultuser = 'in20';
+defaultserver = 'thales';
+defaultuser = 'thales';
 
 
 %---------------------------
@@ -91,14 +91,14 @@ maxdeviate.c = .05;
 stdgrid.ANGLES = [0.1, 0.1];             % a4'/psi
 stdgrid.A4ENERGY = [0.1, .25];          % a4'/en
 stdgrid.ANGLESENERGY = [0.1, .25, .1];   %a4'/en/psi
-stdgrid.ANGLESQZ = [stdgrid.ANGLES, .05]; %a4'/psi/Qvert
+stdgrid.ANGLESQZ = [stdgrid.ANGLES, .02]; %a4'/psi/Qvert
 stdgrid.QXY = [0.01, 0.01];             % Qx/Qy
 stdgrid.QXQYEN = [stdgrid.QXY, stdgrid.ANGLESENERGY(2)]; % Qx/Qy/En
-stdgrid.QXYZ = [stdgrid.QXY, .05];      % Qx/Qy/Qz
+stdgrid.QXYZ = [stdgrid.QXY, .02];      % Qx/Qy/Qz
 stdgrid.LINEARQ = [0.002,0.05];               % Q/en
 stdgrid.HKLET = [.005,.005,.01,.01,.005];
 stdgrid.SCANSTEP = [.1,.1];
-stdgrid.GENERAL = .005;
+stdgrid.GENERAL = .5;
 
 % Maximum distances for binning
 % (often not used because grid fine enough)
@@ -106,10 +106,10 @@ stdgrid.GENERAL = .005;
 stdbindist.ANGLES = [.1, .1];     % a4'/psi
 stdbindist.A4ENERGY = [.1, .1];   % a4'/en
 stdbindist.ANGLESENERGY = stdbindist.A4ENERGY([1,2,1]);
-stdbindist.ANGLESQZ = [stdbindist.ANGLES, .1];
+stdbindist.ANGLESQZ = [stdbindist.ANGLES, .05];
 stdbindist.QXY = [0.02, 0.02];    % Qx/Qy
 stdbindist.QXQYEN = [stdbindist.QXY, stdbindist.ANGLESENERGY(2)]; % Qx/Qy/En
-stdbindist.QXYZ = [stdbindist.QXY, .1];
+stdbindist.QXYZ = [stdbindist.QXY, .05];
 stdbindist.HKLET = stdgrid.HKLET;
 stdbindist.LINEARQ = stdgrid.LINEARQ *5;
 stdbindist.SCANSTEP = [.3,.3];

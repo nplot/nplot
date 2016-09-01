@@ -248,7 +248,7 @@ switch upper(plotstruct.type)
                 if sign(end1(1))==-1; al='right'; else al='left'; end
                 text(1.1*end1(1),end1(2),  num2str(plotstruct.sampleinfo.ax,'[%g,%g,%g]'), 'Fontname','Verdana','horizontalalignment',al);
             end
-            if ~keepview, asp=daspect; nasp=sqrt([basis2q'*basis2q,basis1q'*basis1q]); daspect([nasp(1:2)/mean(nasp(1:2))*mean(asp(1:2)), asp(3)] ); end
+            if ~keepview, axis auto; asp=daspect; nasp=sqrt([basis2q'*basis2q,basis1q'*basis1q]); daspect([nasp(1:2)/mean(nasp(1:2))*mean(asp(1:2)), asp(3)] ); end
         end
     case 'ANGLES'
         xlabel('Scattering Angle (in-plane)');

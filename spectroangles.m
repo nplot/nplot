@@ -8,8 +8,7 @@ function [a3,gu,gl,a3p,a4,gfc]=spectroangles(vx,vy,vz,ki,kf,ch,SS,mintilt,vararg
 %   opt:      desired solution (give condition, e.g. 'A3P=0', 'A3=25.4' etc.)
 %   zerovals: angles zeros
 %
-% P. Steffens, 11/2008
-
+% P. Steffens, 11/2008 - 1/2015
 
 QSign = getoption('QSign');
 if isempty(SS), SS=getoption('stdSS'); end
@@ -50,11 +49,18 @@ if SS == 1
 else
     sindelta = - b * sinnu - cosnu * sqrt(1 - c.^2 - b.^2);
     % delta may be larger or smaller than -90. Regard sign of cos(delta):
-    if b + sindelta*sinnu > 0
-        delta = asin(sindelta);
-    else
-        delta = -pi - asin(sindelta);
-    end
+    
+    % correction:
+    posind = b + sindelta*sinnu > 0;
+    delta = 0*sindelta; % (initialize with same size)
+    delta(posind) = asin(sindelta(posind));
+    delta(~posind)= -pi - asin(sindelta(~posind));
+    
+%     if b + sindelta*sinnu > 0
+%         delta = asin(sindelta);
+%     else
+%         delta = -pi - asin(sindelta);
+%     end
 end
 
 cosdelta  = cos(delta);
@@ -103,6 +109,10 @@ for m=1:numel(ind) % for all possible, do the calculation
     M = [i1, j1, k1] * ([i0, j0, k0]^(-1));  % This is the desired rotation
     
     % Now, let the subroutine do the rest
-    [a3(ind(m)),gu(ind(m)),gl(ind(m)),a3p(ind(m))] = anglesfrommatrix(M, varargin{:});
+    if m==1
+        [a3(ind(m)),gu(ind(m)),gl(ind(m)),a3p(ind(m)),opt,zerovals,config] = anglesfrommatrix(M, varargin{:});
+    else
+        [a3(ind(m)),gu(ind(m)),gl(ind(m)),a3p(ind(m))] = anglesfrommatrix(M,opt,zerovals,config);
+    end
    
 end

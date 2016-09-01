@@ -1,4 +1,4 @@
-function [val paramnames paramnum description] = gaussA(param,x,opt)
+function [val, paramnames, paramnum, description] = gaussA(param,x,opt)
 
 % gaussA(param,x)
 % Gaussian function (Amplitude version)

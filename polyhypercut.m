@@ -38,12 +38,12 @@ end
 
 % If Polygon entirely lies on one side (within precision), do not do the rest and
 % return no cutpoints
-if min(pos) >= const - 1E-10
+if all(pos > const-1E-10) % if min(pos) >= const - 1E-10
     poly1 = [];
     poly2 = pointset;
     cutpoints = [];
     return;
-elseif max(pos) <= const + 1E-10
+elseif all(pos < const + 1E-10) % max(pos) <= const + 1E-10
     poly1 = pointset;
     poly2 = [];
     cutpoints = [];

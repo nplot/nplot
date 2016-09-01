@@ -20,7 +20,7 @@ function erg = getvar(scan,varname,varargin)
 % ** make IMPS-compatible!!!! **
 % ** find a solution for (future) case of several kf per channel!! **
 %
-% P. Steffens, 04/2013
+% P. Steffens, 04/2013 - 10/2014
 
 
 
@@ -198,9 +198,12 @@ if any(strcmp(varname, {'QH','QK','QL'}))
     %now, need sample orientation: either (psi) or (a3,gu,gl,a3p)
     [qx,qy,qz] = QSampleA3(getvar(scan,'A3'), getvar(scan,'GU'),  getvar(scan,'GL'), getvar(scan,'A3P'), qlx, qly, qlz);
     %Convert from sample holder system to HKL by inv. UB-Matrix
-    for j=1:npoints
-        [QH(j), QK(j), QL(j)] = calcHKL(qx(j),qy(j),qz(j),UB); %#ok<AGROW,NASGU>
-    end
+%     for j=1:npoints
+%         [QH(j), QK(j), QL(j)] = calcHKL(qx(j),qy(j),qz(j),UB); %#ok<AGROW,NASGU>
+%     end
+    QHQKQL = UB \ [qx(:), qy(:), qz(:)]';
+    QH = QHQKQL(1,:)'; QK = QHQKQL(2,:)'; QL = QHQKQL(3,:)';  %#ok<NASGU>
+    
     erg = eval(varname);
     erg = erg(:);
     return;    

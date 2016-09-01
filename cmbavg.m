@@ -21,6 +21,7 @@ output = [];
 nscans = length(scanlist);
 if isempty(scanlist), return; end
 if nscans==1 && ~iscell(scanlist), m=scanlist; clear scanlist; scanlist{1}=m; clear m; end % if not, make cell array
+if isempty(scanlist{1}), return; end
 
 %Check if all lists are of the same type
 type1 = upper(scanlist{1}.type);

@@ -14,7 +14,8 @@ gridstep = readinput('dist',varargin);
 if isempty(gridstep), try %#ok<ALIGN>
     stdbindist = getoption('stdbindist'); 
     gridstep = stdbindist.(data.coordtype); 
-    catch fprintf('Error: Need a ''dist'' parameter in ''calclinearcombination''.\n'); errorstate = true; return; end
+    catch
+        fprintf('Error: Need a ''dist'' parameter in ''calclinearcombination''.\n'); errorstate = true; return; end
 end
 
 legendtext =calcstring;

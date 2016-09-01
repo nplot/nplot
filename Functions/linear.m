@@ -1,4 +1,4 @@
-function [val paramnames paramnum description]=linear(param,x)
+function [val, paramnames, paramnum, description]=linear(param,x)
 % linear(param,x)
 % Linear function f(x) = y0 + slope * x
 % Parameters: y0, slope

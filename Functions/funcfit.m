@@ -5,7 +5,7 @@ function [erg,optparam,dpa,paramoutput,outputmessage,chisqN] = funcfit(func, x, 
 % can handle N-dim. x's if function is adapted (f: N-dim --> 1D)
 % opt = 'nooutput' suppresses all screen output
 
-[erg names paramnum des] = func([],[]); % Get function information
+[erg, names, paramnum, des] = func([],[]); % Get function information
 optparam = zeros(1,paramnum); dpa = optparam;
 if ~any(strcmpi(varargin,'NoOutput')),  fprintf('%s . \n', des); end
 if (nargin>5) && (max(size(startparam))<paramnum), fprintf('Not enough parameters!\n'); return; end
@@ -20,7 +20,7 @@ if any(~varindex)
     if ~isempty(constring) && ~strcmp(constring(end),';'), constring(end+1) = ';'; end   % Ensure ; at the end
     ind = find(~varindex);
     for i = intersect(ind, 1:paramnum)
-        constring = [constring, 'p' num2str(i,'%d') '=' num2str(startparam(i)) ';' ];
+        constring = [constring, 'p' num2str(i,'%d') '=' num2str(startparam(i)) ';' ]; %#ok<*AGROW>
     end
 end    
     

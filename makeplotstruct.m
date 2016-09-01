@@ -56,9 +56,10 @@ plotstruct.type = plottype;
 
 for dnum=1:length(datalist)
     ctr{dnum} = coordtransform(datalist{dnum},plottype); %#ok<AGROW>
-    if isempty(ctr), fprintf('No plot - conversion into desired coordinate axes not successful for slice %d.\n', dnum); plotstruct = []; return; end  
+    if isempty(ctr{dnum}), fprintf('Conversion into desired coordinate axes not successful for slice %d.\n', dnum); end  
 end
 ctr = cmbavg(ctr,'noAvg','ignore KF');
+if isempty(ctr), fprintf('No plot - empty data set.\n'); plotstruct = []; return; end  
 plotstruct.vertexlist = ctr.vertexlist;
 plotstruct.coordlist = ctr.coordlist;
 
@@ -100,9 +101,11 @@ else plotstruct.sliceselection = true; end
 
 plotstruct.scaninfo = [];
 if any(strcmpi(plottype,{'QPLANE','QXY','Angles'}))
-    plotstruct.qvert = ctr.QVERT;
-    plotstruct.scaninfo = ['Q^\perp = ' num2str(ctr.QVERT)];
-    if ~strcmp(num2str(ctr.QVERT),'0'); plotstruct.scaninfo = [plotstruct.scaninfo ' '  char(197) '^{-1}']; end
+    if isfield(ctr,'QVERT')
+        plotstruct.qvert = ctr.QVERT;
+        plotstruct.scaninfo = ['Q^\perp = ' num2str(ctr.QVERT)];
+        if ~strcmp(num2str(ctr.QVERT),'0'); plotstruct.scaninfo = [plotstruct.scaninfo ' '  char(197) '^{-1}']; end
+    end
     if isfield(ctr,'KI') && isfield(ctr,'KF')
         plotstruct.scaninfo = [plotstruct.scaninfo ', Energy = ' num2str((ctr.KI^2-ctr.KF^2)*1E20*hbar^2/2/mass_n*meVJ) ' meV' ];
     end

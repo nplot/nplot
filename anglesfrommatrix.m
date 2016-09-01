@@ -1,4 +1,4 @@
-function [a3,gu,gl,a3p] = anglesfrommatrix(varargin)
+function [a3,gu,gl,a3p,varargout] = anglesfrommatrix(varargin)
 
 % Calculate a3,gu,gl,a3p from given rotation matrix
 %
@@ -29,6 +29,7 @@ GUsign = config.GUsign; GLsign = config.GLsign;
 
 U0 = zeromatrix(zerovals, config);
 
+if nargout>4, varargout = {opt,zerovals,config}; end
 
 % Now, it depends which solution is desired (use of A3/A3')
 

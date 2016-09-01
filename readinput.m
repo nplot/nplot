@@ -52,7 +52,7 @@ for p=1:numel(vi)    % Allow for multiple occurences
 
     if ischar(valnew) % try to convert to numeric
         valn = str2num(arglist{vi(p)+1}); %#ok<ST2NM> 
-        if ~isempty(valn) && ~isa(valn,'function_handle'), valnew=valn; end
+        if ~isempty(valn) && isnumeric(valn) && ~isa(valn,'function_handle'), valnew=valn; end
     end
     if isempty(val)
         val = valnew;     % first entry

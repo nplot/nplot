@@ -16,21 +16,9 @@ function [scans, nscans, nodata]=tasread(filenames, varargin)
 % analysis, Flatcone, etc.) is thus to be done by calling routines.
 
 
-% P. Steffens 07/12 - 08/2014
+% P. Steffens 07/12 - 10/2014
 
 
-
-% function matches = regexpmatch(text,expr)
-% % Simulates the behavior of regexp(..,..,'match'), which is not implemented
-% % in older Matlab-Versions
-% [st,en] = regexp(text,expr);
-% matches=[];
-% for ii=1:numel(st)
-%     matches{ii}=text(st(ii):en(ii));
-% end
-% end
-
-%%
 
 filelist = multifilename(filenames);
 
@@ -38,10 +26,9 @@ filelist = multifilename(filenames);
 checkfile(filelist,varargin{:});
 
 nscans= length(filelist);
-notloaded = [];
+% notloaded = [];
 nodata = [];
-dwnl = [];
-dwnlsrv=[];
+
 
 % Go thorough loop for all files...
 
@@ -52,127 +39,109 @@ for j=1:nscans
     filename = filelist{j};
    
     scanfile=[];
-    indata=0;
-    inmulti=0;
     cpol = 0;
-    np=[];
 
-    [FID,message] = fopen(filename,'rt');
+    [FID,message] = fopen(filename); % 'rt'
     
     if (~isempty(message))
          disp(['An error occured while opening the file ' filename ': ' message ]);
-        notloaded = [notloaded,nsc]; %#ok<AGROW>
+%         notloaded = [notloaded,nsc]; 
         continue;
     end
 
     filecontent = fread(FID);   % read whole file at once
-    endline = [0, find(filecontent==10 | filecontent==13)', numel(filecontent)+1];
-    nl=1;
-    while nl < numel(endline)-1
-        nl=nl+1;
-        fline = strtrim(char(filecontent(endline(nl-1)+1:endline(nl)-1)'));
-% %     while 1
-% %         fline=fgetl(FID); %read line
-% %         if fline==-1, break, end
-        if isempty(fline), continue, end
+    fclose(FID);
 
-        %Beginning of line
-        if fline(1)>='A' && fline(1)<='Z' %#ok<ALIGN> %if starts with letter
-            section = regexpmatch(fline,'[A-Z]*(?=_*:)');
-        else section=[]; end
+    endline = [0, find(filecontent==10 | filecontent==13)'];
+    endline = setdiff(endline, endline-1); % in case of double line returns, keep only second
+    if endline(end)~=numel(filecontent), endline(end+1) = numel(filecontent)+1; end %#ok<AGROW>
+    flen = numel(filecontent);
+    filecontent = char(filecontent);
+    
 
-        %if new section, no longer in DATA or MULTI block
-        if ~isempty(section), indata=0; inmulti=0; end
+    firstletter = filecontent(endline(1:end-1)+1);
+    for nl = find(firstletter >='A' & firstletter <='Z')'  % look (only) at lines starting with a letter
 
-        %if in DATA or MULTI block, add line
-        if indata==1
-            data(dline+1,:)=sscanf(fline,'%f',[1,inf]);
-            dline=dline+1;
-        end
-        if inmulti==1
-            scanfile.MULTI(mline+1,:) = sscanf(fline,'%f',[1,inf]);
-            mline=mline+1;
-        end
-
-        if isempty(section) && ~isempty(strfind(fline, '  imps   ')), scanfile.impsmode = true; continue; end
+        fline = filecontent(endline(nl)+1:endline(nl+1)-1)';
         
-        if isempty(section), continue; end
-
-        %Begin of DATA or MULTI block
-        if strcmp(section,'DATA')
-% %             fline=fgetl(FID); %read line
-% %             if fline==-1, break, end
-            nl = nl+1; fline = strtrim(char(filecontent(endline(nl-1)+1:endline(nl)-1)'));
-            if isempty(fline), break, end
-            scanfile.DATA.columnames = regexpmatch(fline,'\S+');
-            indata=1;
-            dline=0;
-            if isempty(np) || ~isfinite(np) , np=0; end;
-            data=zeros(np,length(scanfile.DATA.columnames)); 
-        end
-        if strcmp(section,'MULTI')
-            inmulti=1;
-            mline=0;
-            scanfile.MULTI=zeros(np,31); 
-        end
-
-        %If line contains variables and values, extract these and create
-        %respective fields of output
-        names   = regexpmatch(fline,'([A-Z]\w*)(?=\s*=)');
-%         numbers = regexpmatch(fline,'(?<==\s*)([\d.-]+|[a-zA-Z\*]+)'); %         Read only one number each
-        numbers = regexpmatch(fline,'(?<==\s*)([\d.-]+(\s*[\d.-]+)*|[a-zA-Z\*]+)');  % Allow for multiple numbers (case for ROIs) 
-        for i=1:length(names)
-            if all(numbers{i}<='9'), numbers{i}=str2num(numbers{i}); end
-            if ~isempty(numbers{i}), scanfile.(section{1}).(names{i})=numbers{i}; end
-        end
-
-        if ~isempty(strfind('INSTR,EXPNO,USER,LOCAL,FILE,DATE,TITLE,COMND,FORMT',section{1}))
-            % Lines that (should) appear only once
-            scanfile.(section{1}) = char(regexpmatch(fline,'(?<=:\s+)\S+.+'));
-            if strcmp(section{1},'COMND'), np=str2double(regexpmatch(fline,'(?<=NP\s)\d+')); end
+        if ~isempty(strfind('INSTR:,EXPNO:,USER_:,LOCAL:,FILE_:,DATE_:,TITLE:,COMND:,FORMT:,TYPE_:',fline(1:6)))
+            % Take the rest of the line as value. These lines should appear only once.
+            section = fline(1:5); section = section(fline(1:5)>='A' & fline(1:5)<='Z'); 
+            scanfile.(section) = strtrim(fline(7:end));
+            continue;
         end
         
-        if strcmpi('POLAN',section{1})
-            % there are usually several POLAN lines
-            cpol = cpol+1;
-            scanfile.POLAN{cpol} = char(regexpmatch(fline,'(?<=:\s+)\S+.+'));
+        switch fline(1:6)
+            case 'DATA_:' 
+                fline = strtrim(filecontent(endline(nl+1)+1:endline(nl+2)-1)'); % read line with col.names
+                if isempty(fline), break, end
+                scanfile.DATA.columnames = regexpmatch(fline,'\S+');
+                data = sscanf(filecontent(endline(nl+2)+1:flen)','%f'); % read whole block (until non-number appears)
+                data = reshape(data, length(scanfile.DATA.columnames), [])';
+            case 'MULTI:'
+                multi = sscanf(filecontent(endline(nl+1)+1:flen)','%d'); % read whole block (until non-number appears)
+                scanfile.MULTI = reshape(multi, 31, [])';
+            case 'POLAN:'
+                cpol = cpol+1;
+                scanfile.POLAN{cpol} = strtrim(fline(7:end)); %char(regexpmatch(fline,'(?<=:\s+)\S+.+'));
+            otherwise
+                if fline(6)==':', section = fline(1:5); section = section(section>='A' & section<='Z');
+                else section = regexpmatch(fline,'[A-Z]*(?=_*:)');
+                end
+                if isempty(section), continue; end
+                
+                try
+                    % go along line, look for '=' and ','
+                    stind = 7;
+                    cmind = [find(fline(8:end)==',')+7, numel(fline)+1]; 
+                    for eqind = find(fline(8:end-1)=='=')+7
+                        val = fline(eqind+1: min(cmind(cmind>eqind))-1);                    
+                        numval = str2double(val);
+                        if ~isfinite(numval), numval= str2num(val); end %#ok<ST2NM>
+                        if isempty(numval)
+                            scanfile.(section).(strtrim(fline(stind:eqind-1))) = strtrim(val);
+                        else
+                            scanfile.(section).(strtrim(fline(stind:eqind-1))) = numval;
+                        end
+                        stind = min(cmind(cmind>eqind))+1;
+                    end
+                catch
+                    fprintf('Parse error in file %s, line: %s\n',filename,fline);
+                end
         end
+        
+
         
     end
 
-    fclose(FID);
-    
     nsc = nsc+1;
-    
-    if isfield(scanfile,'MULTI'), scanfile.MULTI=scanfile.MULTI(1:mline,:); end
     
     % properly format the DATA matrix; each column becomes a separate array 
     if isfield(scanfile,'DATA')
-        data=data(1:dline,:);
         doublecolind = [];
         for jj=1:size(data,2)
-            if isfield(scanfile.DATA,scanfile.DATA.columnames{jj}), doublecolind(end+1) = jj; end 
+            if isfield(scanfile.DATA,scanfile.DATA.columnames{jj}), doublecolind(end+1) = jj; end  %#ok<AGROW>
             scanfile.DATA.(scanfile.DATA.columnames{jj})=data(:,jj); 
         end
-        scanfile.DATA.columnames = {scanfile.DATA.columnames{setdiff(1:jj,doublecolind)}};
+        scanfile.DATA.columnames = scanfile.DATA.columnames(setdiff(1:jj,doublecolind));
         
-    else 
+    else % no data in this file
         scanfile.FORMT = [];
         scanfile.DATA  = [];
         if (nsc>1)&&(isfield(scans(1),'MULTI')), scanfile.MULTI = []; end
-        nodata = [nodata,nsc];
+        nodata = [nodata,nsc]; %#ok<AGROW>
     end
     
     
     % Assign to output list    
     try
         if any(strcmpi(varargin,'cells')) 
-            scans{nsc} = scanfile;
+            scans{nsc} = scanfile; %#ok<AGROW>
         else
-            scans(nsc) = scanfile;
+            scans(nsc) = scanfile; %#ok<AGROW>
         end
     catch
-        notloaded = [notloaded, j];
+%         notloaded = [notloaded, j];
         fprintf(['Did not load ' scanfile.FILE ': format not identical to previous files in list.\n']);
         nodata = setdiff(nodata,nsc);
         nsc = nsc-1;

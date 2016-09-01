@@ -24,7 +24,8 @@ if isfield(datalist,'delaunaytri')
     tri = datalist.delaunaytri;
 else
     % Triangularize the data
-    tri = delaunayn(datalist.coordlist);
+%     tri = delaunayn(datalist.coordlist);      %**
+    tri = delaunayfromvoronoi(datalist.faces, datalist.coordlist, 2);
 end
 if isempty(tri),  warning('linearinterpolation:CannotTriangulate','Data cannot be triangulated.');  return; end
     

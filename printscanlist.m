@@ -58,16 +58,21 @@ lastexpno=[]; lastuser=[]; lastlocal=[]; lasttitle=[];
 fprintf('\n');
 for i=1:length(filelist)
     slist(i).file = filelist{i}; %#ok<*AGROW>
-    if ~isempty(vars) %if need to extract variables, use tasread.
+%     if ~isempty(vars) %if need to extract variables, use tasread.
         scan=tasread(filelist{i});
 %         scan.VARIA.GU = 0; scan.VARIA.GL = 0; scan.VARIA.A3P = 0;
         if isempty(scan), continue; end
-        expno = scan.EXPNO; user = scan.USER; local = scan.LOCAL; title = scan.TITLE; command = scan.COMND; date = scan.DATE;
+        if isfield(scan,'EXPNO'), expno = scan.EXPNO; else expno = 'none'; end
+        if isfield(scan,'LOCAL'), local = scan.LOCAL; else local = 'none'; end
+        if isfield(scan,'TITLE'), title = scan.TITLE; else title = 'none'; end
+        if isfield(scan,'COMND'), command = scan.COMND; else command = 'none'; end
+        if isfield(scan,'DATE'), date = scan.DATE; else date = 'none'; end
+        if isfield(scan,'USER'), user = scan.USER; else user = 'none'; end
         hasdata = isfield(scan,'DATA') && ~isempty(scan.DATA);
-    else     %otherwise, simply tasscaninfo (a bit faster)
-        [expno, user, local, date, title, command, hasdata] = tasscaninfo(filelist{i});    
-        if strcmp(expno,'file error'), continue, end
-    end
+%     else     %otherwise, simply tasscaninfo (a bit faster)
+%         [expno, user, local, date, title, command, hasdata] = tasscaninfo(filelist{i});    
+%         if strcmp(expno,'file error'), continue, end
+%     end
     slist(i).date = date; slist(i).command = command;
     nlflag=0;
     if ~strcmp(expno,lastexpno),    fprintf(fid,'**Exp.-No.: %s    ',expno);  lastexpno=expno; nlflag=1; end
