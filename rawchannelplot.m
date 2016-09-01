@@ -3,7 +3,7 @@ function [xx,yy,ee] = rawchannelplot(scannr,chan,var,ax)
 % function [xx,yy,ee] = rawchannelplot(scannr,chan,var,ax)
 % Plot one or several channels of data scannr
 % If var is given, use this column as x-values
-%
+
 % P.Steffens, 10/2009
 
 if nargin<4

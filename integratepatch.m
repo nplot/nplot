@@ -8,7 +8,7 @@ function valsum = integratepatch(faces, vertices, values, errors, corner, sides,
 % - steps (N components) defines the number of slices to be taken along each direction.
 %
 % Prepared to work in arbitrary dimensions.
-%
+
 % P. Steffens 08/2008
 
 

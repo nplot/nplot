@@ -1,5 +1,6 @@
 function Qv = Qvert(scan, nomean)
 
+% for FLATCONE:
 % Determine vertical component of momentum transfer
 % If nomean, no averaging done
 %

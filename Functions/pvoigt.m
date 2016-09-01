@@ -4,7 +4,7 @@ function [val paramnames paramnum description] = pvoigt(param,x,opt)
 % Pseudo-Voigt function 
 % parameters: x0, Amplitude, width, eta
 
-description  = 'Pseudo-Woigt';
+description  = 'Pseudo-Voigt';
 paramnames   = {'x0', 'Amplitude', 'Width', 'Eta'};  paramnum = length(paramnames);
 
 if isempty(param) || ((nargin>2) && (strcmpi(opt,'INFO'))),  val=[]; return; end

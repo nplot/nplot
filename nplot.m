@@ -10,8 +10,11 @@ function [avgdata,fitresult] = nplot(files, varargin)
 % 'var', {'v1','v2',..} :   which variables to use. If not given, take the scanned variables (of first scan). 
 %                           This choice determines the coordinates to be considered, the others are ignored.
 %                           For Flatcone data, you can also choose 'twotheta'.
-% 'plotvar', 'varname':     Variable for x-axis in the plot (must be among 'var's). If not given, first one is used.
-% 'plot', axhandle :        Give either valid axes handle or 'none' to supress plot. New window, if not given. 
+% 'xvar', 'varname':        Variable for x-axis in the plot (must be among 'var's). If not given, first one is used.
+% 'yvar', 'varname' :       If you want to plot sth else than CNTS, give the column name here. 
+%                           You can also plot values of zeros., param., or varia.-sections of the file header
+%                           If this option is used, NO normalization and averaging is done.
+% 'plotaxes', axhandle :    Give either valid axes handle or 'none' to supress plot. New window, if not given. 
 % 'plotstyle', {'s1',..}:   Strings defining the marker style for each pal-series (e.g. 'or', '*b', etc.)
 % 'monitor', monval :       Monitor to use for mormalization. If not given, use first M1 value of first scan.
 % 'time', time (s) :        If given instead of monitor, normalize on time (in seconds)
@@ -46,13 +49,14 @@ function [avgdata,fitresult] = nplot(files, varargin)
 % 'noplot'      : do not plot the results. (like 'plot none')
 % 'showfit'     : Write Fit results in the graphics window
 % 'llb'         : Use input routine for LLB scan file format
-% '..'          : Use same parameter list as for previous call of nplot
+% 'panda'       : Use input routine for Panda scan file format (Frm2)
+% '..'          : Use same parameter list as for previous call of nplot (parameters can be added, '*' to overwrite previous)
 %
 % Output: 
 %   avgdata:   list of binned and averaged data
 %   fitresult: If a fit has ben performed, result of fit parameters
 
-% P. Steffens, 06/2012
+% P. Steffens, 7/2013
 
 
 
@@ -60,8 +64,12 @@ function [avgdata,fitresult] = nplot(files, varargin)
 % **Not tested for case of PALs and ROIs at the same time
 
 %% Check input
-knownoptions = {'var','plotvar','plot','plotstyle','monitor','time','legend','offset','setpal','step','start','end','maxdist','reintegrateimps','only','xtransform','ytransform','calc','fit','startval','fitvar','constraint'};
-knownswitches = {'overplot','details','nobin','nooutput','nolegend','noplot','showfit','llb','..'};
+knownoptions = {'var','xvar','yvar','plotaxes','plotstyle','monitor','time','legend','offset','setpal','step','start','end','maxdist','reintegrateimps','only','xtransform','ytransform','calc','fit','startval','fitvar','constraint'};
+knownswitches = {'overplot','details','nobin','nooutput','nolegend','noplot','showfit','llb','panda','..'};
+
+% Set output options
+if any(strcmpi(varargin,'details')), showdetails=true; else showdetails=false; end  % Detailed output? 
+if any(strcmpi(varargin,'nooutput')), nooutput=true; else nooutput=false; end  % Suppress all output?
 
 
 % Restore parameters from previous call of nplot if necessary, and store new ones
@@ -73,19 +81,40 @@ if any(strcmpi(varargin,'..')) && ~isempty(lastnplotparams),
 end    
 lastnplotparams = varargin;
 
+
+% Check for '*' in input string
+% (to override params of previous calls without warning)
+notwarnmultiple = find(strncmp('*',varargin,1));
+for j=notwarnmultiple, if j>1 && isempty(strfind(lower(varargin{j-1}),'plotstyle')), varargin{j} = varargin{j}(2:end); end; end
+
+
+% Replace some old option names by new ones
+translate = {'plotvar','xvar'; 'plot','plotaxes'};
+for tr = 1:size(translate,1)
+    [val,rest] = readinput(translate{tr,1}, varargin);
+    if isempty(val), continue; elseif ~iscell(val), val = {val}; end
+    if isempty(rest), rest = {}; end 
+    varargin = rest; 
+    for r=1:length(val)
+        varargin = {varargin{:}, translate{tr,2}, val{r}};
+    end
+    if ~isempty(val) && showdetails
+        fprintf('Option name %s has been replaced by %s\n', translate{tr,1}, translate{tr,2});
+    end
+end
+
 % Test if varagin can be interpreted
-[message,unknownopt,multipleopt] = checkoptions(varargin, knownoptions, knownswitches);
+[message,~,multipleopt] = checkoptions(varargin, knownoptions, knownswitches,notwarnmultiple);
 if ~isempty(message), fprintf(['Warning(s):\n', message]); end
-if ~isempty(multipleopt), fprintf('If you give multiple values for the same options, the last occurence is used.\n'); end
-    
-if any(strcmpi(varargin,'details')), showdetails=true; else showdetails=false; end  % Detailed output? 
-if any(strcmpi(varargin,'nooutput')), nooutput=true; else nooutput=false; end  % Suppress all output?
+if ~isempty(multipleopt), fprintf('If you give multiple values for the same options, the last occurence is used.\n(Use * in front of option name to suppress this warning.)\n'); end
 
 %% Read all files
 
 if any(strcmpi(varargin,'llb')) % Use LLB Scan Format?
     scans = llbtasread(files,'cells');
-    
+elseif any(strcmpi(varargin,'panda')) % Use Panda Scan Format?
+    scans = tasreadpanda(files,'cells');
+       
 else
     scans = tasread(files,'download','cells');  % ILL
 end
@@ -109,6 +138,7 @@ end
 % Either given in varargin, or inferred from scan command
 % Give multiple variables as cell array of strings
 data.variables = readinput('var',varargin,'last');
+
 if isempty(data.variables)
 %     [st,en] = regexp(upper(scan1.COMND),'(?<=(BS|SC)\s+)\w+');           % ** Allow for multiple variables ?! **
     [st,en] = regexp(upper(scan1.COMND),'(?<=\s+D)\w+(?=\s+\-?(\d*\.?\d+|\d+\.?\d*))');           
@@ -122,13 +152,73 @@ if isempty(data.variables)
             data.variables{length(data.variables)+1} ='QK'; data.variables{length(data.variables)+1} = 'QL'; data.variables{length(data.variables)+1} ='EN';
         end
     end
+    % If xvar option given, check if variable in automatically generated var-list
+    xvarname = readinput('xvar',varargin,'last');
+    if ~isempty(xvarname) && ~any(strcmpi(xvarname,data.variables))
+        data.variables = {xvarname};
+        if showdetails
+            fprintf('Variable list from scan replaced by %s (argument in xvar option).\n',xvarname);
+        end
+    end
     if isempty(data.variables)
         fprintf('Could not determine scanned variable, plotting agains point number. Please use option "var".\n');
         data.variables = {'PNT'};
     end
 else
-    if ischar(data.variables), try data.variables = eval(data.variables); catch end; end
+    if ischar(data.variables), try data.variables = eval(data.variables); catch, end; end
     if ~iscell(data.variables), data.variables = {data.variables}; end %ensure cell array
+end
+
+userealtime = false;
+if any(strcmpi(data.variables,'realtime')) % special case, calculate this via getvar.m
+    if ~nooutput
+        fprintf('Using date and time of measurement as x-variable.\n');
+        fprintf('Note that values are approximate only (neglect positioning and pauses) and correspond to end of measured point.\n'); 
+    end
+    for ns = 1:length(scans)
+        scans{ns}.DATA.REALTIME = getvar(scans{ns},'realtime');
+        scans{ns}.DATA.columnames = {scans{ns}.DATA.columnames{:},'REALTIME'};
+    end
+    varargin = {varargin{:}, 'nobin'}; % do no binning in this case
+    userealtime = true;
+end
+
+
+%% Determine also if other column than CNTS is to be on the y-axis
+
+yvar = readinput('yvar',varargin,'last');
+if isempty(yvar)
+    specialyvar = false;
+else
+    specialyvar = true;
+    varargin = {varargin{:}, 'nobin'};
+    if showdetails
+        fprintf('Use column %s for y-axis. Errors are set to NaN.\n', yvar);
+    end    
+    
+    % some guesses to correct simplified input if appropriate
+    if ~isfield(scan1.DATA,yvar) && isfield(scan1.DATA,upper(yvar)), yvar = upper(yvar); end  % check if upper case may be better
+    if ~isfield(scan1.DATA,yvar) && upper(yvar(1))=='Z' && any(isfield(scan1.ZEROS,{yvar(2:end),upper(yvar(2:end))}))
+        yvar = ['ZEROS.' yvar(2:end)];
+    end
+    
+    % test if in zeros, params, or varia, and append value as data column
+    if length(yvar)>5 && yvar(6)=='.' && any(strcmpi(yvar(1:5),{'ZEROS','PARAM','VARIA'})) 
+        try
+            yvarsec=upper(yvar(1:5));
+            yvar = yvar(7:end);
+            if ~isfield(scan1.(yvarsec),yvar) && isfield(scan1.(yvarsec),upper(yvar)), yvar = upper(yvar); end  % check if upper case may be better
+            for ns = 1:length(scans)
+                scans{ns}.DATA.([yvarsec,'__',yvar])= scans{ns}.(yvarsec).(yvar) * ones(size(scans{ns}.DATA.PNT));
+                scans{ns}.DATA.columnames = {scans{ns}.DATA.columnames{:}, [yvarsec,'__',yvar] };
+            end
+            yvar = [yvarsec,'__',yvar];
+        catch
+            fprintf('Error on extracting %s from file header.\n',yvar);
+            if nargout, avgdata = []; else clear avgdata; end; return;
+        end
+    end
+        
 end
 
 %% Eventually adjust file format: Check for special case of "fcu"-counting
@@ -271,7 +361,7 @@ for scannr = 1:length(scans)
         assignpal = readinput('setpal',varargin,'last');
         scan.DATA.PAL = ones(size(scan.DATA.PNT));
         if isempty(assignpal)
-            fprintf('Error: File %d does not contain Polarization info. Use "setpal" option to combine with the others.\n',scannr);
+            fprintf('Error: File %s does not contain polarization info. Use "setpal" option to combine with the others.\n',scan.FILE);
             if nargout, avgdata = []; else clear avgdata; end; return;
         end        
     elseif isfield(scan,'POLAN')
@@ -287,7 +377,7 @@ for scannr = 1:length(scans)
     try
         for ii = 1:length(data.variables)
             if ~isfield(scan.DATA, data.variables{ii}) && ~isfield(scan.DATA, upper(data.variables{ii}))
-                fprintf('Error: Could not find variable %s in file %d. Check file format and spelling (incl. upper/lower case).\n', data.variables{ii}, scannr);
+                fprintf('Error: Could not find variable %s in file %s. Check file format and spelling (incl. upper/lower case).\n', data.variables{ii}, scan.FILE);
                 if nargout, avgdata = []; else clear avgdata; end; return; 
             end
             try
@@ -301,13 +391,35 @@ for scannr = 1:length(scans)
             fprintf('Zeros were detected in column %s of file %s, which is used for normalization. You may try normalizing on time by using the ''time'' option.\n',moncolumn,scan.FILE);
             if nargout, avgdata = []; else clear avgdata; end; return;
         end
+        if ~isfield(scan.DATA,moncolumn)
+            fprintf('Error: Could not find %s (used for normalization) in file %s. Check file format and spelling (incl. upper/lower case).\n', moncolumn, scan.FILE);
+            if nargout, avgdata = []; else clear avgdata; end; return; 
+        end
         data.monitorlist = [data.monitorlist; scan.DATA.(moncolumn)];
-        data.valuelist = [data.valuelist; monval * [scan.DATA.CNTS ./ scan.DATA.(moncolumn), sqrt(scan.DATA.CNTS) ./ scan.DATA.(moncolumn)]];
+        if ~specialyvar %(use CNTS)
+            data.valuelist = [data.valuelist; monval * [scan.DATA.CNTS ./ scan.DATA.(moncolumn), sqrt(scan.DATA.CNTS) ./ scan.DATA.(moncolumn)]];
+        else % use other column for y-axis, and NaN's as error
+            if ~isfield(scan.DATA,yvar)
+                fprintf('Error: Could not find variable %s in file %d. Check file format and spelling (incl. upper/lower case).\n', yvar, scannr);
+                if nargout, avgdata = []; else clear avgdata; end; return; 
+            end
+            if any(strcmpi(yvar,{'M1','M2'}))
+                fprintf('Using normalized %s on y-axis and sqrt as error. (Attention if using divider!)\n',yvar);
+                data.valuelist = [data.valuelist; monval * [scan.DATA.(yvar) ./ scan.DATA.(moncolumn), sqrt(scan.DATA.(yvar)) ./ scan.DATA.(moncolumn)]];
+            else
+                data.valuelist = [data.valuelist; scan.DATA.(yvar), nan(size(scan.DATA.(yvar)))];
+            end
+        end
         if data.polarized,      data.pallist    =  [data.pallist; assignpal(scan.DATA.PAL)];    end
         if data.multichannel,   data.channellist = [data.channellist; scan.DATA.(channelname)]; end
-        for i=length(data.taglist)+(1:size(coords,1)), data.taglist{i} = scan.FILE; end
+        len=length(data.taglist);
+        for i=(1:size(coords,1))
+            if ~userealtime, data.taglist{len+i} = scan.FILE; 
+            else data.taglist{len+i} = [scan.FILE,' (', datestr(scan.DATA.REALTIME(i)), ')'];
+            end
+        end
     catch
-        fprintf('Error: Could not combine file %d with the others. (Check file format!)\n', scannr); 
+        fprintf('Error: Could not combine file %s with the others. (Check file format!)\n', scan.FILE); 
         if nargout, avgdata = []; else clear avgdata; end; return; 
     end
     
@@ -374,7 +486,7 @@ if isempty(gridstep)        % Determine stepsize from scan command (1st scan)
         varname = upper(data.variables{i});
         stind = 1;
         secvar = {'QK','QL','EN'}; % "secondary var's"
-        if any(strcmp(varname,secvar)) && i>1
+        if any(strcmp(varname,secvar)) %&& i>1 %**??
             % treat special case of qk, ql, en  (as part of dqh)
             stind = find(strcmp(varname,{'QK','QL','EN'}))+1;
             varname = 'QH';
@@ -382,7 +494,7 @@ if isempty(gridstep)        % Determine stepsize from scan command (1st scan)
         [st,en] = regexp(cmd, ['(?<=\s+D' varname ')(\s+\-?(\d*\.?\d+|\d+\.?\d*))+']);
         if ~isempty(st) 
             stepadd = str2num(cmd(st(1):en(1))) / 2; %#ok<ST2NM>
-        elseif isfield(scan1.STEPS,varname)
+        elseif isfield(scan1,'STEPS') && isfield(scan1.STEPS,varname)
             stepadd = scan1.STEPS.(varname) / 2;
         else
             stind=[]; stepadd=[]; 
@@ -412,8 +524,12 @@ if numel(gridstep) ~= length(data.variables) || all(gridstep==0)
 end
 
 if showdetails
-    fprintf('Scan variables: '); for i=1:length(data.variables), fprintf('%s ', data.variables{i}); end
-    fprintf(['.  The step size used for binning is: ' num2str(gridstep(:)','%g ') '\n']);
+    fprintf('Scan variables: '); for i=1:length(data.variables), fprintf('%s ', data.variables{i}); fprintf('\b'); end
+    if nobinning
+        fprintf('. No binning of data is performed.\n');
+    else
+        fprintf(['.  The step size used for binning is: ' num2str(gridstep(:)','%g ') '\n']);
+    end
 end
 
 %% Discard points that do not belong to the scan
@@ -510,7 +626,7 @@ end
 newgridpoints = zeros(0,size(gridpoints,2)+2);
 for p = unique(data.pallist)'
     for c = unique(data.channellist)'
-        newgridpoints = [newgridpoints; c*ones(size(gridpoints,1),1), p*ones(size(gridpoints,1),1), gridpoints];
+        newgridpoints = [newgridpoints; c*ones(size(gridpoints,1),1), p*ones(size(gridpoints,1),1), gridpoints]; %#ok<*AGROW>
     end
 end
 data.coordlist = [data.channellist, data.pallist, data.coordlist];
@@ -611,12 +727,12 @@ ytransform = readinput('ytransform',varargin,'last');
 if ~isempty(ytransform)
     try
         ytransform(strfind(ytransform, 'y')) = 'Y';
-        Y = avgdata.valuelist(:,1);
+        %Y = avgdata.valuelist(:,1);
         dY = avgdata.valuelist(:,2);
         smallval = 1e-4;
-        Y = avgdata.valuelist(:,1) + smallval;
+        Y = avgdata.valuelist(:,1) + smallval; %#ok<NASGU>
         avgdata.valuelist(:,2) = eval(ytransform);
-        Y = avgdata.valuelist(:,1) - smallval;
+        Y = avgdata.valuelist(:,1) - smallval; %#ok<NASGU>
         avgdata.valuelist(:,2) = avgdata.valuelist(:,2) - eval(ytransform);
         avgdata.valuelist(:,2) = avgdata.valuelist(:,2) / (2*smallval) .* dY;
         avgdata.valuelist(:,1) = eval(ytransform);
@@ -629,7 +745,7 @@ xtransform = readinput('xtransform',varargin,'last');
 if ~isempty(xtransform)
     try
         xtransform(strfind(xtransform, 'x')) = 'X';
-        X = avgdata.coordlist;
+        X = avgdata.coordlist; %#ok<NASGU>
         avgdata.coordlist = eval(xtransform);
     catch
         fprintf('Error on transformation of x-coordinate. Check statement!\n'); if nargout, avgdata = []; else clear avgdata; end; return; 
@@ -670,7 +786,7 @@ for chnum = whichchan
 end
 
 % If some plotstyle or legends explicitly given, assign them:
-if ischar(pstyle), try pstyle = eval(pstyle); catch end; end
+if ischar(pstyle), try pstyle = eval(pstyle); catch end; end %#ok<*SEPEX>
 if ischar(legtext), try legtext = eval(legtext); catch end; end
 for np=1:numplots
    if ~isempty(pstyle),  if iscell(pstyle),  dplot{np}.plotstyle = pstyle{mod(np-1, length(pstyle)) +1}; else dplot{np}.plotstyle=pstyle; end; end
@@ -678,25 +794,60 @@ for np=1:numplots
 end
 
     
-if ~isempty(readinput('plotvar',varargin,'last'))
-    plotvar = find(strcmpi(data.variables,readinput('plotvar',varargin,'last')));
+if ~isempty(readinput('xvar',varargin,'last'))
+    plotvar = find(strcmpi(data.variables,readinput('xvar',varargin,'last')));
+    if isempty(plotvar), 
+        fprintf('Error: The variable name provided in "xvar" is not found in the variable list.\n'); 
+        if nargout, avgdata = []; else clear avgdata; end; return; 
+    end        
+elseif isempty(plotvar)
+    plotvar = 1; % first by default
 end
-if isempty(plotvar), plotvar = 1; end
     
-axhandle = readinput('plot',varargin,'last');
+axhandle = readinput('plotaxes',varargin,'last');
 if any(strcmpi(varargin,'overplot')), axhandle = gca; end
 if any(strcmpi(varargin,'noplot')), axhandle = 'none'; end
 
 if ~strcmpi(axhandle, 'none')
     
     plot1d(dplot,plotvar,axhandle,varargin{:});
-
-    xlabel(data.variables{plotvar});
-    ylabel(['Counts (' moncolumn ' ' num2str(monval) ')']);
     
-    title(files);
+    xlabel(data.variables{plotvar});
+    if ~isempty(xtransform), xlabel(strrep(xtransform,'X',data.variables{plotvar})); end
+    
+    if ~specialyvar
+        if isempty(ytransform)
+            ylabel(['Counts (' moncolumn ' ' num2str(monval) ')']);
+        else
+            ylabel([strrep(ytransform,'Y','Counts') ' (' moncolumn ' ' num2str(monval) ')']);
+        end
+    else
+        if isempty(ytransform)
+            ylabel(yvar);
+        else
+            ylabel(strrep(ytransform,'Y',yvar));
+        end 
+    end
+    
+    % if using date and time on x-axis, adjust axis labels
+    if strcmpi(data.variables{plotvar},'realtime')
+        dtvec = datevec(avgdata.coordlist(:,plotvar));
+        switch find(max(dtvec,[],1)-min(dtvec,[],1),1,'first') % first value changing (y/m/d/h/min/s)
+            case 1
+                datetick('x','dd-mmm-yyyy'); xlabel('Date');
+            case 2
+                if max(dtvec(:,3))-min(dtvec(:,2))>6, datetick('x','dd-mmm-yyyy'); xlabel('Date');
+                else datetick('x','ddmmm HH:MM'); xlabel('Date and time'); end
+            case 3
+                datetick('x','ddmmm HH:MM'); xlabel('Date and time');
+            case {4,5,6}
+                datetick('x','HH:MM:SS'); xlabel(['Time (on ', datestr(avgdata.coordlist(1,plotvar),'dd mmm yyyy') ,')'] );
+        end
+    end
+    
+    title(files,'interpreter','none');
     if length(data.variables)==4 && all(strcmpi(data.variables,{'QH','QK','QL','EN'})) && size(avgdata.coordlist,1)>0
-        if all(abs(avgdata.coordlist(1,1:3)-avgdata.coordlist(end,1:3))<=2*maxdist(1:3)), title({files, ['Q = (', num2str(mean(avgdata.coordlist(:,1:3),1),'%g, %g, %g'), ')']});  %#ok<ALIGN>
+        if all(abs(avgdata.coordlist(1,1:3)-avgdata.coordlist(end,1:3))<=2*maxdist(1:3)), title({files, ['Q = (', num2str(mean(avgdata.coordlist(:,1:3),1),'%g, %g, %g'), ')']});  
         elseif abs(avgdata.coordlist(1,4)-avgdata.coordlist(end,4))<=2*maxdist(4), title({files, ['E = ' num2str(mean(avgdata.coordlist(:,4)),'%g') ]}); 
         end
     end
@@ -720,6 +871,17 @@ if ~isempty(funcname)
        for i=1:ngauss, funcname = [funcname, ',@gaussA']; end
        funcname = [funcname, ')'];
     end
+        
+    % Test if short form for Lorenzian Function
+    nlorentz = [];
+    [st,en] = regexp(upper(funcname),'^LORENTZ\d*$');  
+    if ~isempty(st)
+       nlorentz = str2double(funcname(st+7:en)); % number of lorentzians
+       if isempty(nlorentz), nlorentz=1; end
+       funcname = 'fsum(@const';
+       for i=1:nlorentz, funcname = [funcname, ',@lorentzA']; end
+       funcname = [funcname, ')'];
+    end
     
     % Simply Linear function?
     islinear = ~isempty(regexp(upper(funcname),'^LINEAR$','once')); 
@@ -729,8 +891,8 @@ if ~isempty(funcname)
     % Obtain function information
     eval(['ff=' funcname ';']);
     try
-        [val fitresult.paramnames paramnum] = ff([],[]);
-        if isempty(startval) && isempty(ngauss) && ~islinear % no startvalues given, and no Gauss function
+        [val, fitresult.paramnames, paramnum] = ff([],[]);
+        if isempty(startval) && isempty(ngauss) && isempty(nlorentz) && ~islinear % no startvalues given, and no Gauss function
             fprintf('Please give start parameters for fit! Use option ''startval''.\n'); 
             fprintf('Parameter list: '); for c=1:length(fitresult.paramnames), fprintf('%s ',fitresult.paramnames{c}); end, fprintf('\n'); if nargout, avgdata = []; else clear avgdata; end; return;
         end
@@ -745,21 +907,38 @@ if ~isempty(funcname) % continue only if successful until here
     
     % Determine which variables are to be fitted
     varindex = readinput('fitvar',varargin,'last');
-    varindex(numel(varindex)+1 : paramnum) = 1; %#ok<NASGU>
+    varindex(numel(varindex)+1 : paramnum) = 1; 
     
     % Do the fit for each dataset in dplot
     for np = 1:numplots
         if isempty(dplot{np}), continue; end
         if isempty(startval)     % guess parameters if not given (Gauss and linear only)
-            if islinear, startval = startvallinear(dplot{np}.coordlist(:,plotvar), dplot{np}.valuelist(:,1)); end
-            if ~isempty(ngauss), startval = startvalgauss(dplot{np}.coordlist(:,plotvar), dplot{np}.valuelist(:,1), ngauss); end
+            if islinear, startval = startvallinear(dplot{np}.coordlist(:,plotvar), dplot{np}.valuelist(:,1)); 
+            elseif ~isempty(ngauss), startval = startvalgauss(dplot{np}.coordlist(:,plotvar), dplot{np}.valuelist(:,1), ngauss);
+            elseif ~isempty(nlorentz), startval = startvalgauss(dplot{np}.coordlist(:,plotvar), dplot{np}.valuelist(:,1), nlorentz); 
+            end
             if isempty(startval), fprintf('Automatic guess of start parameters failed!\n'); if nargout, avgdata = []; else clear avgdata; end; return; end
         end
         % Fitting:       
         if ~nooutput, fprintf('** Fitting dataset %d to function: ', np); end
-        [fitval,fitresult.optparam(np,1:paramnum),fitresult.errors(np,1:paramnum),paramoutput] = ...
-            funcfit(eval(funcname), dplot{np}.coordlist(:,plotvar), dplot{np}.valuelist(:,1), dplot{np}.valuelist(:,2), startval, varindex,varargin{:}) ; 
+        % Check if any zero error bars, and avoid
+        errlist = dplot{np}.valuelist(:,2);
+        zeroerr = errlist==0; 
+        if any(zeroerr)
+            if showdetails, fprintf('For fitting, zero errorbars are replaces by a finite number (smallest errorbar found in dataset).\n'); end
+            if all(zeroerr), errlist=errlist+eps; else errlist(zeroerr) = min(errlist(~zeroerr)); end
+        end
+        % Fit
+        try
+            [fitval,fitresult.optparam(np,1:paramnum),fitresult.errors(np,1:paramnum),paramoutput,~,fitresult.chi2] = ...
+                funcfit(eval(funcname), dplot{np}.coordlist(:,plotvar), dplot{np}.valuelist(:,1), errlist, startval, varindex,varargin{:}) ; 
 %            eval(['funcfit( dplot{np},plotvar,' funcname ',startval,varindex);']);
+        catch
+            e=lasterror; msg = e.message;
+            fprintf('Error while fitting. Exit.\n%s\n', msg);
+            fitresult = []; avgdata = [];
+            return;
+        end   
             
         
         % Plotting:

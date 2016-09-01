@@ -65,6 +65,7 @@ normval = 4000;
 knownservers = {'in3','in8','in12','in14','in20'};
 defaultdirectory = '/users/data';
 defaultserver = 'in20';
+defaultuser = 'in20';
 
 
 %---------------------------
@@ -121,6 +122,7 @@ stdratio.A4ENERGY = [1/30, 1];
 stdratio.ANGLESENERGY = stdratio.A4ENERGY([1,2,1]);
 stdratio.ANGLESQZ = [stdratio.ANGLES, 1];
 stdratio.QXY = [1,1]; 
+stdratio.QXQYEN = [1,1,1];
 stdratio.QXYZ = [1,1,1];
 stdratio.LINEARQ = [1, 1/5];
 stdratio.QEPLANE = [1, .2];
@@ -135,6 +137,7 @@ stdcell.A4ENERGY = [2.5,1];      % a4'/en
 stdcell.ANGLESENERGY = [stdcell.A4ENERGY, stdcell.ANGLES(2)];
 stdcell.ANGLESQZ = [stdcell.ANGLES, .3];
 stdcell.QXY = [.16, .16];  stdcell.QPLANE = stdcell.QXY;
+stdcell.QXQYEN = [stdcell.QXY, 1];
 stdcell.QXYZ = [stdcell.QXY, .3];
 stdcell.LINEARQ = [.13, .7];
 stdcell.QEPLANE = [.1,1];
@@ -152,11 +155,26 @@ exptitle = 'No Title';
 % Standard options
 plotopt.showvectors = 1;    %Display orienting vectors?
 plotopt.showgrid = 1;       %Display HKL coordinate grid?
+plotopt.showedges = 1;      % Show edges of each slice?
 plotopt.linlog = 'LIN';     %'lin' for linear, 'log' for log color scale
 plotopt.presentation = 'voronoi';  % choose plot type below
 %    'voronoi';     patch of Voronoi cells
-%    'linear';      linearly interpolated data
+%    'linear';      linearly (or not) interpolated data
 %    'contourf';    Filled contour plot
+plotopt.interpolationtype = 'patchinterp';  % Choose interpolation method
+%    'pcolorsmooth';    interpolated shading with pcolor grid (ngrid^2 pixels)
+%    'pcolorfacet';     flat shading with pcolor grid (ngrid^2 pixels)
+%    'patchinterp';     use patch command to shade based on triangulation
+%                   of orig. data points (no grid applies; generally looks less nice)
+plotopt.interpolationgrid = 200; % Pixels in each dimension if interpolation on a grid 
+%                               (large numbers time consuming)
+plotopt.interpolationsystem = 'data';   % In which coordinate system to work for interpolation?
+%   'data': work on plotstruct.dataset.coordlist;
+%   'plot': work on plotstruct.coordlist;
+plotopt.interpolationlimit = 2; % Defines when to leave blank a region in the interpolation when real data points too far
+%                   (Triangles exceeding this size are thrown out; in units of pixelsize (stdsize)). Typical ~2.
+plotopt.interpolationalgorithm = 'natural';
+%                   Method used in "griddata" (linear/cubic/natural/nearest)
 plotopt.showcells = false;   % Display edges of Voronoi cells?
 plotopt.showcoordpoints = false; % Display coordinates of measured points?
 plotopt.preferHKL = true;   % HKL coords rather than Angstroms?
@@ -189,6 +207,14 @@ stdSS = -1;
 % Rotation directions for Goniometers for a3=0 with za3 at its nominal value (given by za3_0) 
 GUsign = -1; % (ILL-TAS: -1) +1 if gu>0 tilts cryostat top towards reactor for a3=0; -1 otherwise.        IN20 before 2009: +1
 GLsign = 1;  % (ILL-TAS: +1) +1 if gl>0 is clockwise rotation around ki seen from reactor; -1 otherwise.  IN20 before 2009: -1
+
+%----------------------------
+% powxbu parameters
+%----------------------------
+powparam.ti = 2;
+powparam.da4 = .15;
+powparam.np = 30;
+
 
 %----------------------------
 % IMPS

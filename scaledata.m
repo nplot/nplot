@@ -1,7 +1,8 @@
 function scaled = scaledata(data,factor)
 
+% scaled = scaledata(data,factor)
 % Returns a multiple of 'data'
-%
+
 % P. Steffens, 08/2008
 
 scaled = data;

@@ -7,7 +7,7 @@ function varargout = getoption(varargin)
 % cell array of strings that can be interpreted by readinput(), input is
 % analyzed for a corresdponding value. If found, this value is returned
 % for the corresponding variables, otherwise those from the options.m file.
-%
+
 % P. Steffens, 11/2009
 
 if nargout == 0, return; end
@@ -47,6 +47,10 @@ if ~isempty(optionsvalues) && dnn - optionsvalues.lastversionchecktime > 5E-5
     if isempty(dinfo), dinfo = dir(optionsvalues.optionsfilename); end
     optionsvalues.lastversionchecktime = dnn;
     if isempty(dinfo) || dinfo.datenum ~= optionsvalues.lastupdate || ~strcmpi(which('options'),optionsvalues.optionsfilename)
+        optfile = which('options');
+        if isempty(optfile) 
+            error('Error: file options.m not found. Please create a local copy or include in Path.\n');
+        end
         fprintf('File options.m has changed. Reload from %s.\n',which('options'));
         optionsvalues = [];
     end

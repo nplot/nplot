@@ -9,12 +9,14 @@ function avg = plotmultiple(scanlist,varargin)
 %             'coordinates': which coordinates to use. Allowed values are
 %                           'angles' - work with a4 and psi(a3) (2d)
 %                           'anglesEnergy' - like 'angles' plus Energy (3d) [a4,en,psi]
+%                           'a4energy' - twotheta and Energy (2d)
 %                           'anglesQz' - 'angles' plus Qz (3d)
 %                           'qxy' - use qx and qy (in-plane momentum transfer) (2d)
 %                           'qxyz' - like  'qxy' plus Qz (3d)
 %                           'qxqyen' - like 'qxy' plus Energy (3d)
 %                           'energyproj' - abs. value of Q, and energy (2d)
 %                           'linearQ' - (IMPS) Q-coordinate along chosen direction, and energy (2d)
+%                           'direct' - read variables from scan file. Give option 'variables' (cell array)
 %             'plottype' : Which axes to use for plotting
 %                           'qplane' - Qx,Qy coordinates (rec. Angst.)
 %                           'qeplane' - Q,E axes
@@ -23,6 +25,10 @@ function avg = plotmultiple(scanlist,varargin)
 % An automatic guess for appropriate coordinates and plottype is performed.
 % Allowed codewords include most variables from the options.m file, which
 % can thus be replaced from the command line.
+% Switches for gonio behaviour:
+%             '2dmode' : for data using Mad's 2d-mode (gonios not zeroed)
+%             'nogoniomode': completely ignore gonios - i.e. they're assumed flat or not installed 
+%                           (note that's not equivalent to '2dmode' for instance if a3p installed)
 %
 % Examples:
 % plotmultiple 0512[10,11,14:16]
@@ -31,13 +37,18 @@ function avg = plotmultiple(scanlist,varargin)
 % plotmultiple 012345 normalizeto M1 normval 1000 vanacorr 2 det_eff [1,1,.99,1.01,1, ...]
 
 
-% P. Steffens 07/2012
+% P. Steffens 08/2014
 
 
+avg = [];
+if ~iscell(scanlist) % ensure cell array
+    if scanlist(1)=='{' && scanlist(end)=='}' %#ok<ALIGN> % simplified cell array arg.
+        scanlist = regexpmatch(scanlist(2:end-1),'\w*\[[\w\,\:]+\][\w\.]*|\w+[\w\.]*');
+    else m = scanlist; clear scanlist; scanlist{1}=m; end % single slice
+end 
+numberofslices = length(scanlist);
 
-if ~iscell(scanlist), m = scanlist; clear scanlist; scanlist{1}=m; end % ensure cell array
-
-
+%% Preliminary stuff, for setting or input parameters
 
 listtype = readinput('coordinates',varargin);
 plottype = readinput('plottype',varargin);
@@ -99,7 +110,7 @@ if isempty(listtype)
     end
     
 elseif isempty(plottype)  % listtype known, but not plottype
-    if any(strcmpi(listtype,{'angles','qxy'})), plottype = 'qplane'; end
+    if any(strcmpi(listtype,{'angles','qxy'})), plottype = 'Qxy'; end
     if any(strcmpi(listtype,{'energyproj','a4energy','linearq','qeplane'})), plottype = 'qeplane'; end
     if any(strcmpi(listtype,{'anglesEnergy','qxqyen'})), plottype = 'Energy3d'; end
     if any(strcmpi(listtype,{'AnglesQZ','qxyz'})), plottype = 'qxyz'; end
@@ -113,19 +124,40 @@ if isempty(listtype) || isempty(plottype)
 end
 
 
-[stdcell,stdratio,stdgrid] = getoption('stdcell','stdratio','stdgrid','check',varargin);
-stdgrid = stdgrid.(upper(listtype));
+%%
+% Something to treat future case of several analyzers per channel 
+% (e.g. Berlin-Multiflex, Panda-Bambus, camea, etc.). So far, only for Multiflexx
+multianaoption = readinput('analyzers',varargin);
+if ~isempty(multianaoption)
+    if strcmpi(multianaoption,'all'), anachannels=1:5;
+    elseif isnumeric(multianaoption), anachannels=multianaoption;
+    else fprintf('Error: Could not read analyzers option. Exit.\n'); return; 
+    end
+    fprintf('Test-version of plotmultiple for multiflexx - use analyzers %s.\n',num2str(anachannels));
+    numberofslices = numel(anachannels) * numberofslices; % each analyzer set becomes a slice
+end
+
+
+%% Starts here...
+
+[stdcell,stdratio,stdbindist] = getoption('stdcell','stdratio','stdbindist','check',varargin);
+% stdgrid = stdgrid.(upper(listtype));
+stdbindist = stdbindist.(upper(listtype));
 hassomedata = false;
 
 
-
-for number = 1:length(scanlist)  % for each slice:
+% Loop over slices:
+for number = 1:numberofslices
 
     % Takes scans (load, if necessary) and transform them into a linear list
-    linearlist = makelist(scanlist{number}, listtype, varargin{:});     
+    if isempty(multianaoption) %(this is the normal case)   
+        linearlist = makelist(scanlist{number}, listtype, varargin{:});     
+    else %(test version for several analyzer sets)
+        linearlist = makelist(scanlist{mod(number-1,length(scanlist))+1}, listtype, varargin{:}, 'multiflexxanalyzer', anachannels(floor((number-1)/length(scanlist))+1));
+    end
 
     % Combine and average data
-    avg{number} = cmbavg(linearlist);
+    avg{number} = cmbavg(linearlist); %#ok<*AGROW>
     if isempty(avg{number}); fprintf('No data in slice %d.\n',number);  continue; else hassomedata=true; end
 
     % For polarized data:
@@ -144,7 +176,7 @@ for number = 1:length(scanlist)  % for each slice:
     ndims = size(avg{number}.coordlist,2);
     maxsize = stdcell.(upper(avg{number}.coordtype));   
     ratios  = stdratio.(upper(avg{number}.coordtype));
-    constdims = (max(avg{number}.coordlist,[],1)- min(avg{number}.coordlist,[],1)) < stdgrid(:)';
+    constdims = (max(avg{number}.coordlist,[],1)- min(avg{number}.coordlist,[],1)) < stdbindist(:)';
             % Along these dimensions there is no variation. 
     if  ndims == 2 
         % Two-dimensional data, --> this is easy. The Voronoi cells are the final mesh to be plot
@@ -174,6 +206,7 @@ for number = 1:length(scanlist)  % for each slice:
         % If no, collect for each point its neighbors (delaunay), fit a
         % plane locally and obtain one face each (cutpoints of polyhypercut).
         % Or: if an equation f(r)=0 can be found for the surface, a call to createintersection might be much better. 
+        % ** (needs to be done)
         
         planenormal = zeros(0,ndims);
         distvec = zeros(size(avg{number}.coordlist));
@@ -193,7 +226,7 @@ for number = 1:length(scanlist)  % for each slice:
         % Check if any distance vector is larger than allowed (for each coordinate)
         oneplane = true;
         for di=1:ndims
-            if any(abs(distvec(:,di)) > stdgrid(di)), oneplane = false; end
+            if any(abs(distvec(:,di)) > stdbindist(di)), oneplane = false; end
         end
         
         if oneplane  % A single 2dim plane is to be used
@@ -211,11 +244,15 @@ for number = 1:length(scanlist)  % for each slice:
         else
             %...
             
+            fprintf(['Abort: Was not able to find a hyperplane describing the data well enough.\nThis case is not yet implemented in plotmultiple.\n', ...
+                     '(This may be a problem of too small tolerance; check stdbindist parameter in your options.m)\n']);
+                 
+            
         end
     end
     
-    %%**
-    avg{number}.sectionlist = number * ones(size(avg{number}.coordlist(:,1)));
+%     %%**
+%     avg{number}.sectionlist = number * ones(size(avg{number}.coordlist(:,1)));
 
 end
 
@@ -224,7 +261,8 @@ if ~hassomedata
     fprintf('No data to plot.\n');  
 else
     
-    avg = cmbavg(avg,'noAvg');
+%     avg = cmbavg(avg,'noAvg');  % **!! combine into single data structure?? No!
+    if iscell(avg) && length(avg)==1, avg = avg{1}; end %** reduce if only one slice
     
     if isempty(avg), fprintf('No data to plot.\n'); 
     else

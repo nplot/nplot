@@ -11,7 +11,7 @@ function decorateQplot(ax,bx,lattice,qv,type,axhandle,opt)
 % lattice: structure containing lattice constants etc. (use getlattice)
 % qv: vertical component of Q
 % opt=true fixes the range of the axes
-%
+
 % P. Steffens 07/2008
 
 %%
@@ -63,7 +63,7 @@ hold(axhandle,'on');
 xlimits = get(axhandle,'xlim');
 ylimits = get(axhandle,'ylim');
     
-if strcmp(upper(type),'ARROWS')
+if strcmpi(type,'ARROWS')
     quiver(axhandle, centerx+[0,0], centery+[0,0], [q1x,q2x], [q1y,q2y], 0, 'k');
     text(c(1)+q2x+.1*q1x,c(2)+q2y,['[' num2str(bx(1)) ',' num2str(bx(2)) ',' num2str(bx(3)) ']' ], 'Fontname',font);    
     if sign(q1x)==-1; al='right'; else al='left'; end
@@ -73,7 +73,7 @@ if strcmp(upper(type),'ARROWS')
     if ~keepview
         setequallimits(xlimits, ylimits);
     end
-elseif strcmp(upper(type),'GRID')
+elseif strcmpi(type,'GRID')
 %     xlimits2 = [ floor(min(plotstruct.vertexlist(:,1))*2)/2, ceil(max(plotstruct.vertexlist(:,1))*2)/2] ; % "Normal" axis limits (full range)
 %     ylimits2 = [ floor(min(plotstruct.vertexlist(:,2))*2)/2, ceil(max(plotstruct.vertexlist(:,2))*2)/2] ; % use these for plotting to ensure that grid covers full range (even when zooming out)
     xlimits2 = [-8,8];
@@ -97,7 +97,7 @@ elseif strcmp(upper(type),'GRID')
     if ~keepview
         setequallimits(xlimits, ylimits);
     end
-elseif strcmp(upper(type(1:3)),'PSI')
+elseif strcmpi(type(1:3),'PSI')
     psival=str2num(type(5:end));
     [lx,ly]=inplaneQ(0:100,psival*ones(1,101),ki,kf,qv);
     plot(lx,ly,'-r');

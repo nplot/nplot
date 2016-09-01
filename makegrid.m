@@ -5,12 +5,12 @@ function [grid,assign]=makegrid(coords, centers, steps)
 % be assigned).
 %
 % Works in n dimensions.
-%
+
 % centers may be empty (--> calculate it) or multiple
-%
+
 % To be extended and improved...
-%
-%
+
+
 % P. Steffens 08/2008
 
 

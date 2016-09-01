@@ -5,7 +5,7 @@ function [vertices, connection] = calcpowderline(data, dval, type)
 % type:  1 incoherent on Ana (kf'=ki)
 %        2 incoherent on Mono (ki'=kf)
 
-% P. Steffens, 04/2009
+% P. Steffens, 04/2009 - 08/2014
 
 
 % helper function
@@ -50,14 +50,18 @@ elseif strcmpi(data.coordtype, 'qxy')
     try ki = getconstant('KI'); kf = getconstant('KF');  Qvert = getconstant('QVERT'); catch return; end
     if type==1, lambda = 2*pi/ki; end
     
-    pos = data.vertexlist(:,1).^2 + data.vertexlist(:,2).^2 + Qvert^2 + ki^2 + kf^2 - 2*ki*kf*(1 - lambda^2/dval^2/2);
+    % The scattering angle 2th is Q^2 = ki^2+kf^2-2kikf*cos(2th). Note: 2th~=a4 in 3D
+    % Use cos(2th) = 1-2sin^2(th).
+    % The |q| for ki=kf=k is q=2k*sin(th). Equals this to Q(pow)=pi/d ?
+    
+    pos = data.vertexlist(:,1).^2 + data.vertexlist(:,2).^2 + Qvert^2 - ki^2 - kf^2 + 2*ki*kf*(1 - lambda^2/dval^2/2);
     
 elseif strcmpi(data.coordtype, 'qxyz')
     % need Ki, Kf
     try ki = getconstant('KI'); kf = getconstant('KF'); catch return; end
     if type==1, lambda = 2*pi/ki; end
     
-    pos = data.vertexlist(:,1).^2 + data.vertexlist(:,2).^2 + data.vertexlist(:,3).^2 + ki^2 + kf^2 - 2*ki*kf(1 - lambda^2/dval^2/2);
+    pos = data.vertexlist(:,1).^2 + data.vertexlist(:,2).^2 + data.vertexlist(:,3).^2 - ki^2 - kf^2 + 2*ki*kf(1 - lambda^2/dval^2/2);
     
 elseif any(strcmpi(data.coordtype, {'anglesenergy','a4energy'}))
     % use here again that kf is always constant (otherwise would have to distinguish ki/kf const. scans)

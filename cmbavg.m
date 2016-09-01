@@ -9,8 +9,11 @@ function output=cmbavg(scanlist,opt,varargin)
 % opt="nogrid":   averaging without grid (ie. only exactly equal points)
 % opt="standard" or empty: use standard grid parameters from options file
 %
+% varargin can contain a number of parameter pairs (override values from options.m)
+% varargin conatining 'ignore [CONST]' ignores deviations in constant(s)
 
-% % P. Steffens 12/2012
+
+% % P. Steffens 8/2014
 
 if nargin<2   opt = 'standard'; end %#ok<SEPEX>
 
@@ -48,12 +51,29 @@ output.coordtype = upper(coordtype1);
 output.raw = raw1;
 output.polarized = ~isnotpol1;
 
-output.expname = scanlist{1}.expname;
-output.dataname = scanlist{1}.dataname;
-for i=2:nscans
-    output.dataname = [output.dataname, ', ', scanlist{i}.dataname];
+% expname and title
+output.expname = scanlist{1}.expname;   output.dataname = scanlist{1}.dataname;
+for i=1:nscans, enames{i}=scanlist{i}.expname; dnames{i}=scanlist{i}.dataname; end
+enames = unique(enames,'stable'); dnames = unique(dnames,'stable');
+if iscell(enames) && length(enames)>1, for i=2:length(enames), output.expname = [output.expname, ', ', enames{i}]; end; end
+if iscell(dnames) && length(dnames)>1, for i=2:length(dnames), output.dataname= [output.dataname,', ', dnames{i}]; end; end
+
+% properties...
+propnames = {};
+for i=1:nscans, if isfield(scanlist{i},'properties'), propnames = [propnames; fieldnames(scanlist{i}.properties)]; end, end
+propnames = unique(propnames);
+for p=1:length(propnames)
+    pval={}; 
+    for i=1:nscans
+        if ~isfield(scanlist{i},'properties') || ~isfield(scanlist{i}.properties,propnames{p}), pval = {'not defined for all data'}; break; 
+        else pval = [pval, scanlist{i}.properties.(propnames{p})]; end
+    end
+    if length(unique(pval))>1, output.properties.(propnames{p}) = 'not equal for all data';
+    else pval = unique(pval);  output.properties.(propnames{p}) = pval{1}; end
 end
 
+        
+        
 if isfield(scanlist{1},'sampleinfo'), output.sampleinfo = scanlist{1}.sampleinfo; end
 
 if isfield(scanlist{1},'paldeflist'), output.paldeflist = scanlist{1}.paldeflist; end
@@ -70,10 +90,16 @@ output.constants = eqset;
 for j=1:length(notall), fprintf('Warning: Value for "%s" does not exist in all data sets! Continue... (Please check!)\n', notall{j}); end
 %Error in case of too large deviations
 if ~isempty(deviate)
-    errtxt=[]; for j=1:length(deviate), errtxt = [errtxt, deviate{j}, ' ']; end
-    fprintf('Error while combining data lists: too large deviation in %s !\n (You may increase the maximum acceptance in the options file.) \n', errtxt);
-    output=[];
-    return;
+    errtxt=[]; 
+    ignoreconsts = readinput('ignore',varargin); % names of constants to ignore (can be cell array)
+    for j=1:length(deviate)
+        if ~any(strcmpi(deviate{j},ignoreconsts)), errtxt = [errtxt, deviate{j}, ' ']; end
+    end
+    if ~isempty(errtxt)
+        fprintf('Error while combining data lists: too large deviation in %s !\n (You may increase the maximum acceptance in the options file.) \n', errtxt);
+        output=[];
+        return;
+    end
 end
 
 
@@ -92,7 +118,7 @@ for i=1:nscans
         if isfield(scanlist{i},'faces'), 
             faces(size(faces,1)+(1:size(scanlist{i}.faces,1)),1:size(scanlist{i}.faces,2)) = scanlist{i}.faces + size(vertexlist,1); 
         end
-        if isfield(scanlist{i},'delaunaytri'), delaunaytri = [delaunaytri; scanlist{i}.delaunaytri + size(coordlist,1)]; end
+        if isfield(scanlist{i},'delaunaytri'), delaunaytri = [delaunaytri; scanlist{i}.delaunaytri + size(coordlist,1)]; end %#ok<*AGROW>
         if isfield(scanlist{i},'vertexlist'), vertexlist = [vertexlist;scanlist{i}.vertexlist]; end    
         % Note that the combination of vertexlist, faces and delaunaytri does not necessarily make sense. 
         % It is intended for the case of several separate slices.
@@ -101,11 +127,11 @@ for i=1:nscans
     valuelist  = [valuelist; scanlist{i}.valuelist];
     if output.raw, monitorlist = [monitorlist; scanlist{i}.monitorlist]; end
     if isfield(scanlist{i},'taglist'),
-        taglist = {taglist{:}, scanlist{i}.taglist{:}};
+        taglist = [taglist, scanlist{i}.taglist];  % {taglist{:}, scanlist{i}.taglist{:}};
         hastags = true;
     else
         fill = cell(1,size(scanlist{i}.coordlist,1));
-        taglist = {taglist{:}, fill{:}};  % fill with empty cells
+        taglist = [taglist, fill];  % fill with empty cells
     end
     if isfield(scanlist{i},'sectionlist')
         sectionlist = [sectionlist; scanlist{i}.sectionlist];
@@ -142,7 +168,8 @@ bindist = readinput('bin',varargin);
 if isempty(bindist) 
     stdbindist = getoption('stdbindist','check',varargin); 
     try bindist=stdbindist.(output.coordtype); 
-    catch fprintf('Error: your options.m file does not contain the field ''stdbindist.%s''.\n',output.coordtype); output=[]; return;
+    catch
+        fprintf('Error: your options.m file does not contain the field ''stdbindist.%s''.\n',output.coordtype); output=[]; return;
     end
 end
 normval = readinput('monitor',varargin);
@@ -153,7 +180,8 @@ gridstep = readinput('grid',varargin);
 if isempty(gridstep) 
     stdgrid = getoption('stdgrid','check',varargin); 
     try gridstep=stdgrid.(output.coordtype); 
-    catch fprintf('Error: your options.m file does not contain the field ''stdgrid.%s''.\n',output.coordtype); output=[]; return;
+    catch
+        fprintf('Error: your options.m file does not contain the field ''stdgrid.%s''.\n',output.coordtype); output=[]; return;
     end
 end
 
@@ -181,7 +209,7 @@ elseif strcmpi(opt,'STANDARD')
     [grid,assign] = makegrid(coordlist, [], gridstep);
     binlist = [(1:numel(assign))', assign];
 elseif strcmpi(opt,'NOGRID')
-    [grid, n, assign] = unique(coordlist, 'rows');
+    [grid, ~, assign] = unique(coordlist, 'rows');
     binlist = [(1:numel(assign))', assign];
 elseif strcmpi(opt,'AUTO')
     fprintf('cmbavg: Option "auto" not yet implemented... Choose other option. \n');
@@ -189,7 +217,7 @@ elseif strcmpi(opt,'AUTO')
 end
 
 % Finally, do the averaging. Points assigned to the same grid point are averaged
-[ubl2, m , ubl2num] = unique(binlist(:,2));
+[ubl2, ~ , ubl2num] = unique(binlist(:,2));
 output.coordlist = zeros(numel(ubl2),size(coordlist,2));
 output.valuelist = zeros(numel(ubl2), 2);
 if hastags, output.taglist = cell(numel(ubl2), 1); end

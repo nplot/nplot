@@ -2,9 +2,9 @@ function [zi,errzi] = lookaround(datalist,coord,range)
 
 % Obtain values at coord by averaging over a given range of datalist.
 % (Weighted average of points within range)
-% Considers the n Dims of coord, evtl. addition dims of datalist are ignored
+% Considers the n Dims of coord, evtl. additional dims of datalist are ignored
 % (Corresponds to smoothdata.)
-%
+
 % P. Steffens, 06/2008
 
 zi = []; errzi = [];

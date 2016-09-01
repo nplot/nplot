@@ -17,12 +17,14 @@ function erg = bintogrid(datapoints,gridpoints,maxdist)
 % output:   list of data points (first column) with the number of respective
 %           grid point (second column)
 %
-% P. Steffens 05/2008
+% P. Steffens 06/2012
 
 
+erg = [];
 np=size(datapoints,1); %Number of data points
 ng=size(gridpoints,1); %Number of grid points
 dims = size(datapoints,2);
+if size(gridpoints,2) ~= dims, fprintf('Error: Dimension mismatch between data and grid in "bintogrid.m"\n'); return; end
 if numel(maxdist)==1, maxdist = repmat(maxdist,1,dims); end
 
 % try     % version without loop, but very memory-consuming...

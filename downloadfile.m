@@ -1,55 +1,66 @@
-function [answerall, server, success] = downloadfile(name,answerall,server)
+function success = downloadfile(name,server,directory,username)
 
-% Downloads data file directly from ILL spectrometer computer
+% Downloads data file directly from ILL spectrometer computer.
+% (Is normally not called directly; use transfer.m or checkfile.m instead.)
+% Uses scp on local machine.
+% To make it work, the command "scp" must be accessible from the current
+% directory (test with "system scp" from Matlab command line), which is normally 
+% the case under Linux and Mac; on Windows you may install openssh or
+% another package and make sure it is included in the Path variable of the
+% system. (Same for "ssh" which is needed by other .m files.)
+%
+% Instructions to generate a key pair (avoids password for scp, ssh, etc.):
+% If you do not already have one (!), type on the local machine:
+%       ssh-keygen -t rsa
+% (This creates a file .ssh/id_rsa.pub under your home directory)
+% Copy this to the remote machine and append to the list of authorized keys:
+%       scp .ssh/id_rsa.pub in8@in8:~
+%       ssh in8@in8 "cat id_rsa.pub >> .ssh/authorized_keys ; rm id_rsa.pub" 
+% Now the connection should be possible without password authorization
+% (test by "ssh in8@in8")
 
-% P. Steffens, 06/2010
+% P. Steffens, 09/2013
 
 
 
-[knownservers, directory, defaultserver] = getoption('knownservers','defaultdirectory','defaultserver');
+% [knownservers, directory, defaultserver] = getoption('knownservers','defaultdirectory','defaultserver');
 
-%%
-if nargin<3 || isempty(server), server = defaultserver; end
+if ~iscell(name), h{1}=name; name=h; clear h; end  % ensure cell array
+if nargin < 4, username = server; end
+if nargin < 3, directory = '/users/data'; end
 
-answer = [];
-if nargin<2 || isempty(answerall) || ~answerall
-    answer = input(['Try to download file ' name ' from server ' server ' into current local directory?  (y)es, (n)o, (a)ll, (c)hange server [a] '], 's');
+filestr = [];
+for fn=1:length(name)
+    if isempty(directory), filestr = [filestr, name{fn},' '];
+    else filestr = [filestr, directory,'/',name{fn},' ']; end
 end
-if isempty(answer), answer = 'a'; end
-answer = strtrim(answer);
-answerall = strcmpi(answer,'a');
-if strcmpi(answer(1),'n') || ~any(strcmpi(answer(1),{'y','a','c'})), return; end
 
-%% Choose server
+%% Do remote copy
+% This may depend on the OS. Under Windows, other command may be necessary
+% if no scp installed.
+[re,ou] = system(['scp ' username '@' server ':"' filestr '" .']);
 
-if strcmpi(answer,'c')
-    fprintf('Available servers: ');
-    for i=1:length(knownservers), fprintf('(%d) %s   ',i,knownservers{i}); end 
-    server = input('. Enter number:','s');
-    servnum = str2double(server); 
-    if isempty(servnum)  || servnum<1 || servnum>length(knownservers) , fprintf('Server not known!\n'); return; end
-    server = knownservers{servnum};
-    answerall = true;
-    fprintf('Note: you can change the default server in the options file. (Type "edit options".) \n');
+if strfind(ou,'denied')
+    fprintf('Access denied. Retry in new console window (enter password). Exit console manually.\nAvoid this complication by generating a key pair. Type help downloadfile for help.\n');
+    [re,ou] = system(['scp ' username '@' server ':"' filestr '" . &']);  %retry same in new window (to allow for password typing). Note: in this case, [re,ou] always [0,''] ...
 end
 
-%% Username: change here if necessary
-
-username = server;
-
-%% Do copy
-
-if strfind(computer,'WIN')
-    password = [username username];
-    success = system(['winscp3 ' username ':' password '@' server ':' directory ' /command "get ' name '" exit']);
-    % Works for Windows if WinSCP3.exe is included in PATH
+if re ~= 0
+    if ~isempty(ou), fprintf('%s\n',ou); end
+    if nargout > 0, success = zeros(1,length(name)); end
 else
-    success = system(['scp ' username '@' server ':' directory '/' name '  .']);
-    % No password necessary if key pair exchanged:
-    % Generate on local machine by: ssh-keygen -t rsa
-    % (should be in /Users/IN20/.ssh/id_rsa.pub (on MAC))
-    % Copy to remote machine as (or append to): .ssh/authorized_keys  (in /users/in20/)
+    fnstr = strjoin(name,', ');
+    fprintf('File(s) copied from %s:\n',server);
+    i=0; while i<length(fnstr), fprintf('%s\n',fnstr(i+1:min([end,i+80]))); i=i+80; end
+        
+    if nargout>0
+        % Check for success (check only if filenames present)
+        for fn=1:length(name)
+        % check if file is there
+        [fpath, fname, fext] = fileparts(name{fn}); % split (in case name{fn} contains path)
+        success(fn) = ~isempty(dir([fname,fext]));
+        end
+    end
 end
 
-    
 

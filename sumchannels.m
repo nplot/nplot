@@ -4,7 +4,7 @@ function sums = sumchannels(scan,mode)
 % Use plot(sumchannels(..)) to plot
 % scan can be filename or scan structure
 % mode: 'original' (standard), 'monitor' normalized, 'relative' (mean=1)
-%
+
 % P. Steffens, 04/2008
 
 %%

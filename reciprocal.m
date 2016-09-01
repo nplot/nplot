@@ -1,7 +1,8 @@
 function rezlat=reciprocal(lat)
 
 % Do the transform to reciprocal lattice
-% 
+% (angles in radian)
+
 % P. Steffens, 01/2008
 
 V=lat.a*lat.b*lat.c*sqrt(1-cos(lat.alpha)^2-cos(lat.beta)^2-cos(lat.gamma)^2+2*cos(lat.alpha)*cos(lat.beta)*cos(lat.gamma));

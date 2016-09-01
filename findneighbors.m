@@ -6,15 +6,15 @@ function neighbors = findneighbors(nface, coordlist, deltri)
 % Idea: Delaunay-triang. is dual to voronoi-diagram.
 % The neighbors are thus the Voronoi cells that share a facet with the ones
 % in nface.
-%
-% P. Steffens, 05/2008
+
+% P. Steffens, 05/2008 - 08/2014
 
 
-% **!
-% Problem: cells may partially share a facet, i.e. touch, but not have the
+
+% Note: Problem: cells may partially share a facet, i.e. touch, but not have the
 % vertices in common. This is because tht too big cells are artificially
 % cut off.
-% ** What to do???
+% ** This is now treated in Makevoronoi.
 
 
 if nargin<3 %Compute Delaunay triangulation, if not provided
@@ -45,8 +45,12 @@ end
 N = any(ismember(deltri,nface),2);    % lines of deltri that contain a member of nface (logical index)
 
 allv = deltri(N,:);                   % content of these lines
-neighbors = setdiff( unique(allv(:)), nface );
-
+if numel(nface)~=1
+    neighbors = setdiff( unique(allv(:)), nface ); 
+else % do same without setdiff (faster)
+    allv = unique(allv(:));
+    neighbors = allv(allv~=nface);
+end
 
 % neighbors = unique(neighbors);
 

@@ -3,6 +3,7 @@ function [dvals,proc] = powderlineselection
 % dvals = powderlineselection
 % Simple dialog window to select powder lines
 % returns an array of d-values
+% proc stands for the process (ki / kf)
 
 % P. Steffens 05/2010
 

@@ -1,4 +1,4 @@
-function printscanlist(filenames,varargin)
+function slist = printscanlist(filenames,varargin)
 
 % Print MAD scan info
 % Filenames can be entered in Multifilename-Format
@@ -8,10 +8,13 @@ function printscanlist(filenames,varargin)
 %       var [varname]           prints values of variable (you can give this option several times).
 %                               You may add a rounding precision by adding '~[prec]' to varname. Prints *** if 
 %                               variance too large. Use '~mean' to print the mean value instead.
+% return value:
+%       struct array with scan list
 % 
 % Example: printscanlist 0123[45:67] var EN var QVERT~.01 var TT~mean outfile scanlist.txt
+%          list=printscanlist('0123[45:67','var EN');
 
-% P. Steffens, 09/2011
+% P. Steffens, 02/2014
 
 if nargin<1
     help printscanlist
@@ -54,8 +57,10 @@ lastexpno=[]; lastuser=[]; lastlocal=[]; lasttitle=[];
 
 fprintf('\n');
 for i=1:length(filelist)
+    slist(i).file = filelist{i}; %#ok<*AGROW>
     if ~isempty(vars) %if need to extract variables, use tasread.
         scan=tasread(filelist{i});
+%         scan.VARIA.GU = 0; scan.VARIA.GL = 0; scan.VARIA.A3P = 0;
         if isempty(scan), continue; end
         expno = scan.EXPNO; user = scan.USER; local = scan.LOCAL; title = scan.TITLE; command = scan.COMND; date = scan.DATE;
         hasdata = isfield(scan,'DATA') && ~isempty(scan.DATA);
@@ -63,6 +68,7 @@ for i=1:length(filelist)
         [expno, user, local, date, title, command, hasdata] = tasscaninfo(filelist{i});    
         if strcmp(expno,'file error'), continue, end
     end
+    slist(i).date = date; slist(i).command = command;
     nlflag=0;
     if ~strcmp(expno,lastexpno),    fprintf(fid,'**Exp.-No.: %s    ',expno);  lastexpno=expno; nlflag=1; end
     if ~strcmp(user,lastuser),      fprintf(fid,'**User: %s     ',user); lastuser=user; nlflag=1; end
@@ -105,6 +111,7 @@ for i=1:length(filelist)
             val = num2str(val);
         end
         fprintf(fid,' %7s',val);
+        slist(i).(thisvar)=val;
     end
 
     fprintf(fid,'   %s',command);
@@ -113,3 +120,6 @@ for i=1:length(filelist)
 end
 
 if fid>1, fclose(fid); end
+
+if nargout==0, clear slist ; end
+

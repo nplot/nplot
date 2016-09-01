@@ -14,13 +14,55 @@ function tri = delaunayfromvoronoi(faces, coords, dims, nv)
 % Apart that, "tri" is an exact solution.
 %
 % Works currently in two dimensions, but can be generalized
-%
-% P. Steffens, 06/2010
+
+% P. Steffens, 06/2010 - 08/2014
 
 
 
 if nargin<3, dims = 2; end  % ** !
 if nargin<4, nv = max(faces(:)); end  % Take this as the number of vertices 
+
+if dims==2  && ~iscell(faces) % use efficient algorithm
+    facecell = iscell(faces);    
+    facecount=histc(faces(:),1:nv); % ** how do this for cells?
+% %     ntriang = sum(max(0,facecount-2));  % number of triangles to create
+% %     tri = nan(ntriang,3);
+% %     verts = find(facecount>2);  % inds of vertices that give rise to a triangle
+    [~,xorder] = sort(coords(:,1)); % sorting, for to use them in right order
+    if facecell, faces = faces(xorder); else faces = faces(xorder,:); end
+% %     fs2 =size(faces,2);
+% %     faces = faces'; %(transpose for easier indexing below)
+% %     ntri = 1;
+% %     for iv = verts'
+% %         indf = floor((find(faces==iv)-1)/fs2)+1;  % beides etwa gleich langsam: find und == !
+% %         for nt=1:numel(indf)-2
+% %             tri(ntri,:) = xorder(indf(nt:nt+2));
+% %             ntri = ntri+1;
+% %         end
+% %     end
+
+%    % doch besser sortieren?
+    tri_raw = nan(nv,max(facecount));
+    trcount = zeros(nv,1);
+    isfinface = sum(isfinite(faces),2); % finite elements of each face. 
+    for nf = 1:size(faces,1)
+%         thisface = faces(nf,isfinite(faces(nf,:)));
+%         if facecell, thisface=faces{nf}; else thisface = faces(nf,1:isfinface(nf));  end
+        thisface = faces(nf,1:isfinface(nf));
+        trcount(thisface) = trcount(thisface)+1;    % counts entries in each row of tri_raw
+        tri_raw(thisface,2:end) = tri_raw(thisface,1:end-1); % move existing entries ro right, insert left
+        tri_raw(thisface,1) = nf;
+    end
+    tri = [];
+    for nt=1:max(facecount)-2
+        tri = [tri; tri_raw(trcount>nt+1, nt:nt+2)]; %#ok<AGROW>
+    end
+    tri = xorder(tri);
+
+    return;
+end
+
+
 %(if faces is given as cell array like output of voronoin, then need to provide nv!)
 facecount = zeros(nv,1);  % for each vertex, count to how many faces it belongs
 tri_raw = nan(nv,dims+1); % a line in tri_raw contains the numbers of the faces that contain it
@@ -36,7 +78,7 @@ if ~iscell(faces)   % standard (matrix) format of faces
             end
         end
     end
-    
+
 else
 
     for i = 1:length(faces)
@@ -50,6 +92,9 @@ else
         end
     end
 end
+
+
+
 
 
 % lines in tri_raw with less than dims+1 entries do not correspond to triangles
@@ -71,7 +116,7 @@ for i = 1:size(tri_raw,1)
         % the other. Each time adding a point creates two new sides. To exactly one of
         % these, the following triangle will be connected.
         
-        [sx, xorder] = sort(coords(tri_raw(i,1:facecount(i)),1));
+        [~, xorder] = sort(coords(tri_raw(i,1:facecount(i)),1));
         
         tri(tcount,:) = tri_raw(i, xorder(1:3));
         tcount = tcount + 1;

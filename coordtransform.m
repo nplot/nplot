@@ -13,7 +13,7 @@ function [newlist, optout] = coordtransform(datalist, coordtype, varargin)
 % if coordtype==datalist.coordtype --> do nothing
 % if transformation not explicitly implemented: 
 %   can use option 'knowncoord' to interpolate 
-%
+
 % P. Steffens, 01/2012
 
 
@@ -53,7 +53,7 @@ function [newlist, optout] = coordtransform(datalist, coordtype, varargin)
 
 optout = {};
 newlist = datalist;
-if nargin<3 && strcmpi(datalist.coordtype,coordtype)
+if isempty(datalist) || (nargin<3 && strcmpi(datalist.coordtype,coordtype))
     return;
 end
 newlist.coordtype = upper(coordtype);
@@ -71,19 +71,22 @@ for coordfield = coordfieldlist
     
     coordfield = coordfield{1}; %#ok<FXSET>
 
-    if strcmp(upper(coordtype),'QXY') || strcmp(upper(coordtype),'QPLANE')
-        if strcmp(upper(datalist.coordtype),'ANGLES')
+    if strcmpi(coordtype,'QXY') || strcmpi(coordtype,'QPLANE')
+        if strcmpi(datalist.coordtype,'ANGLES')
+            % Transform angles into qx,qy
             [newlist.(coordfield)(:,1), newlist.(coordfield)(:,2)] = inplaneQ(datalist.(coordfield)(:,1), datalist.(coordfield)(:,2), datalist.KI, datalist.KF, datalist.QVERT);
         else
             trygeneraltransform;
         end
 
-    elseif strcmp(upper(coordtype),'QXYZ')
-        if strcmp(upper(datalist.coordtype),'ANGLESQZ')
+    elseif strcmpi(coordtype,'QXYZ')
+        if strcmpi(datalist.coordtype,'ANGLESQZ')
+            % Transform 3d (angles,qz) into qx,qy,qz
             [newlist.(coordfield)(:,1), newlist.(coordfield)(:,2)] = inplaneQ(datalist.(coordfield)(:,1), datalist.(coordfield)(:,2), datalist.KI, datalist.KF, datalist.(coordfield)(:,3));
             newlist.(coordfield)(:,3) = datalist.(coordfield)(:,3);
 
-        elseif any(strcmp(upper(datalist.coordtype), {'QXY','QPLANE','ANGLES'})) && isfield(datalist,'QVERT')
+        elseif any(strcmpi(datalist.coordtype, {'QXY','QPLANE','ANGLES'})) && isfield(datalist,'QVERT')
+            % Transform 2d (qxy or angles) into 3d qx,qy,qz
             newlist = coordtransform(datalist,'QXY');
             newlist.(coordfield)(:,3) = datalist.QVERT;
 
@@ -167,21 +170,21 @@ for coordfield = coordfieldlist
         end
                 
 
-    elseif strcmp(upper(coordtype),'QEPLANE')
-        if strcmp(upper(datalist.coordtype),'A4ENERGY') || strcmp(upper(datalist.coordtype),'ANGLESENERGY')
+    elseif strcmpi(coordtype,'QEPLANE')
+        if strcmpi(datalist.coordtype,'A4ENERGY') || strcmpi(datalist.coordtype,'ANGLESENERGY')
             Es = datalist.(coordfield)(:,2);
             kis = sqrt(2*mass_n * Es / meVJ / hbar^2 + datalist.KF^2 * 1E20) * 1E-10;
             %Do the transformation to inplaneQ with beta=0; take then absolute values
             [newlist.(coordfield)(:,1), qp] = inplaneQ(datalist.(coordfield)(:,1), zeros(size(datalist.(coordfield)(:,1))), kis, datalist.KF, datalist.QVERT);
             newlist.(coordfield)(:,1) = sqrt (newlist.(coordfield)(:,1).^2 + qp.^2);  % ** ??
             newlist.(coordfield) = newlist.(coordfield)(:,1:2);
-        elseif strcmp(upper(datalist.coordtype),'LINEARQ')
+        elseif strcmpi(datalist.coordtype,'LINEARQ')
             % Q = Q0 + lambda*[-n(2),n(1)]
             Q0 = datalist.normal * datalist.c;
             Qs = [Q0(1) - datalist.normal(2) * datalist.(coordfield)(:,1), Q0(2) + datalist.normal(1) * datalist.(coordfield)(:,1)];
             Es = datalist.(coordfield)(:,2);
             [h,k,l] = calcHKL(Qs(:,1), Qs(:,2), 0, UBmatrix(datalist.sampleinfo.lattice,datalist.sampleinfo.ax,datalist.sampleinfo.bx));
-            hkl = [h,k,l];  [m,whichx] = max(max(hkl,[],1)-min(hkl,[],1)); % which of h,k,l varies the most?
+            hkl = [h,k,l];  [~,whichx] = max(max(hkl,[],1)-min(hkl,[],1)); % which of h,k,l varies the most?
             newlist.(coordfield) = [hkl(:,whichx), Es];
             vn = {'H (r.l.u.)','K (r.l.u.)','L (r.l.u.)'};
             newlist.variables = {vn{whichx},'E (meV)'};
@@ -190,8 +193,8 @@ for coordfield = coordfieldlist
         end
 
 
-    elseif strcmp(upper(coordtype),'QXQYEN')
-        if strcmp(upper(datalist.coordtype),'ANGLESENERGY')
+    elseif strcmpi(coordtype,'QXQYEN')
+        if strcmpi(datalist.coordtype,'ANGLESENERGY')
             Es = datalist.(coordfield)(:,2);
             kis = sqrt(2*mass_n * Es / meVJ / hbar^2 + datalist.KF^2 * 1E20) * 1E-10;
             %Do the transformation to inplaneQ 
@@ -201,7 +204,7 @@ for coordfield = coordfieldlist
             trygeneraltransform;
         end
 
-    elseif strcmp(upper(coordtype),'PROJECTION')
+    elseif strcmpi(coordtype,'PROJECTION')
         % first argument in varargin are vectors (n rows are n vectors)
         % second argument in varargin is origin
         if nargin < 4, fprintf('Error: Missing parameters for Transformation PROJECTION.\n'); newlist = []; return; end

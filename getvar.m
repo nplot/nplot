@@ -3,7 +3,7 @@ function erg = getvar(scan,varname,varargin)
 % Extract a Scan variable
 % If it is listed in the file, just returns the listing (trivial).
 % Otherwise, calculate it from the available information.
-% Works currently for ki,kf,ei,ef,a3,a3p,a4,gfc,psi,gu,gl,qh,qk,ql,en.
+% Works currently for ki,kf,ei,ef,a3,a3p,a4,gfc,psi,gu,gl,qh,qk,ql,en. (and: realtime)
 %
 % (Attention: the solution is sometimes not unique if the scan mode (e.g.
 % constant a3p etc.) is not known. As this can at present not be inferred
@@ -14,12 +14,13 @@ function erg = getvar(scan,varname,varargin)
 % chan=16 to make appropriate for standard TAS). 
 % 
 % If varargin contains  'includeparam' or 'readheader', then look also in PARAM, ZEROS and VARIA section
-%
+
 % ** what happens in a pure dEN - Scan?? **
 % ** Zero-handling to be verified (should be OK) **
 % ** make IMPS-compatible!!!! **
+% ** find a solution for (future) case of several kf per channel!! **
 %
-% P. Steffens, 11/2011
+% P. Steffens, 04/2013
 
 
 
@@ -34,7 +35,7 @@ if fieldcheck(scan.DATA,varname)
 end
 
 impsmode = isfield(scan,'impsmode') && scan.impsmode; % is this an IMPS data set?
-impsrefchannel = 5;  %% This may be generalized later **
+% impsrefchannel = 5;  %% This may be generalized later **
 impsanadist = 4; %cm
 
 UB = UBmatrix(getlattice(scan),[scan.PARAM.AX,scan.PARAM.AY,scan.PARAM.AZ], [scan.PARAM.BX,scan.PARAM.BY,scan.PARAM.BZ]); % ** Do not always need
@@ -259,7 +260,7 @@ if strcmp(varname,'KI')
     if scan.PARAM.FX == 1
         erg = scan.PARAM.KFIX * ones(npoints,1); return;
     end
-    if ~any(fieldcheck(scan.STEPS, {'EN','EI'}))
+    if ~any(fieldcheck(scan.STEPS, {'EN','EI','A2'}))
         % constant, POSQE.EN + kf^2....
         scan.DATA.EI = hbar^2 * scan.PARAM.KFIX^2 * 1E20 / 2 / mass_n * meVJ + scan.POSQE.EN * ones(npoints,1);
     end
@@ -268,7 +269,10 @@ if strcmp(varname,'KI')
     end
     if fieldcheck(scan.DATA,'EI')
         erg = sqrt(scan.DATA.EI / meVJ * 2 * mass_n) / hbar * 1E-10;
-    end     
+    end  
+    if fieldcheck(scan.DATA,'A2')
+        erg = pi / scan.PARAM.DM ./ sind(abs(scan.DATA.A2/2));
+    end   
     return;
 end
 
@@ -332,7 +336,7 @@ if any(strcmp(varname(1:min(end,3)), 'CRY'))
     end
     if strcmpi(varname,'CRY') && fieldcheck(scan.VARIA,'CRY1') % give all nine CRY's
         for i=1:9
-            erg =  [erg, ones(npoints,1) * scan.VARIA.(['CRY',num2str(i)]) ]; 
+            erg =  [erg, ones(npoints,1) * scan.VARIA.(['CRY',num2str(i)]) ];  %#ok<AGROW>
         end
         return
     end
@@ -347,6 +351,14 @@ if strcmp(varname,'CHAN')
     else
         erg = 16;
     end
+    return;
+end
+
+
+%CLOCK------(special case, to extract approximate real date and time of each point)
+if strcmp(varname,'REALTIME')
+    starttime = datenum(scan.DATE);
+    erg = starttime + cumsum(scan.DATA.TIME)/3600/24;
     return;
 end
 

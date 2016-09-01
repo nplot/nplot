@@ -12,7 +12,13 @@ nface = NaN;
 if nargin >5
 %     coordlist = coordlist( abs(coordlist(:,1) - x) <= range(1), :);
 %     coordlist = coordlist( abs(coordlist(:,2) - y) <= range(2), :);
-    tri = tsearch(coordlist(:,1),coordlist(:,2),delaunaytri,x,y);
+    try
+        tri = tsearch(coordlist(:,1),coordlist(:,2),delaunaytri,x,y); %#ok<DGEO4>
+        % tsearch is removed in newer Matlab versions. Use tsearchn then.
+        % :-(
+    catch
+        tri = tsearchn([coordlist(:,1),coordlist(:,2)],delaunaytri,[x,y]);
+    end
     if isnan(tri), return; end
     whichfaces = delaunaytri(tri,:);
 else
@@ -26,13 +32,13 @@ for nv = 1:numel(whichfaces)
     dist(nv) = sum( (coordlist(whichfaces(nv),:) - [x,y]).^2 );
 end
 
-[b,sortedorder] = sort(dist);
+[~,sortedorder] = sort(dist);
 
 % Test faces in order of incresing distance (cannot take only nearest
-% because patch is usuall not a Voronoi diagram in qx.qy-coordinates)
+% because patch is usually not a Voronoi diagram in qx.qy-coordinates)
 for nvmin = whichfaces(sortedorder')
     fac = faces(nvmin, isfinite(faces(nvmin,:)));
-    fac = [fac, fac(1)];
+    fac = [fac, fac(1)]; %#ok<AGROW>
     if inpolygon(x,y,vertices(fac,1),vertices(fac,2))
         nface = nvmin;
         return;

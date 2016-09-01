@@ -1,4 +1,4 @@
-function [erg,optparam,dpa,paramoutput,outputmessage] = funcfit(func, x, y, err, startparam, varindex, varargin)
+function [erg,optparam,dpa,paramoutput,outputmessage,chisqN] = funcfit(func, x, y, err, startparam, varindex, varargin)
 
 % Syntax: [erg,optparam,dpa] = funcfit(func,x,y,err,startparam,varindex [,opt])
 
@@ -129,26 +129,29 @@ chisqN = chisq / (length(y) + 1e-8 - length(vi));  %normalized chi-squared
 %% Output
 
 paramoutput=[];
-if ~any(strcmpi(varargin,'NoOutput'))
-    if ~isempty(outputmessage), fprintf('Warning: %s\n',outputmessage); end
-    fprintf('Chi2 = %10.5g \n',chisqN);
-    fprintf('Result:\n');
-    for i=1:1:paramnum
-        fprintf('%20s :  %10.6g  ',names{i},optparam(i));
-        paramoutput{i} = sprintf('%20s : ', names{i});
-        if ~varindex(i)
-            fprintf(' fixed ');
-            paramoutput{i} = [paramoutput{i}, num2str(optparam(i),'%10.6g'), ' (fixed)'];
-        else
-            fprintf(' +/-   %10.5g',dpa(i));
+o = ~any(strcmpi(varargin,'NoOutput')); % flag for output on screen
+if o && ~isempty(outputmessage), fprintf('Warning: %s\n',outputmessage); end
+if o, fprintf('Chi2 = %10.5g \n',chisqN); end
+if o, fprintf('Result:\n'); end
+for i=1:1:paramnum
+    if o, fprintf('%20s :  %10.6g  ',names{i},optparam(i)); end
+    paramoutput{i} = sprintf('%20s : ', names{i});
+    if ~varindex(i)
+        if o, fprintf(' fixed '); end
+        paramoutput{i} = [paramoutput{i}, num2str(optparam(i),'%10.6g'), ' (fixed)'];
+    else
+        if o, fprintf(' +/-   %10.5g',dpa(i)); end
 %             paramoutput{i} = [paramoutput{i}, ' \pm ', num2str(dpa(i),'%10.5g')];
-            paramoutput{i} =  [paramoutput{i}, converterror(optparam(i),dpa(i),'pm',2)];
-            if ismember(i,vd), fprintf('  (constrained)'); paramoutput{i} = [paramoutput{i}, ' (constrained) ']; end
-        end          
-        fprintf('\n');
-    end
+        paramoutput{i} =  [paramoutput{i}, converterror(optparam(i),dpa(i),'pm',2)];
+        if ismember(i,vd)
+            if o, fprintf('  (constrained)'); end
+            paramoutput{i} = [paramoutput{i}, ' (constrained) ']; 
+        end
+    end          
+    if o, fprintf('\n'); end
 end
-if any(strcmpi(varargin,'printchi2')),  fprintf('Chi2 = %10.5g \n', chisqN); end
+
+if any(strcmpi(varargin,'printchi2')),  fprintf('Chi2 = %10.5g \n', chisqN); end %in case of only chi2 output
 
 
 end  % funcfit

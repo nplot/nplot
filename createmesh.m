@@ -6,8 +6,8 @@ function [vertices, faces, numbers] = createmesh (vertexlist, cells, vectors, or
 % Returned coordinates of vertices refer to the given vectors (coefficients for linear combination):
 % (N-dim) coordinates in original system may be obtained via origin+coords*vectors
 % numbers are the indices of the used cells
-%
-% P. Steffens, 08/2008
+
+% P. Steffens, 08/2008 - 08/2014
 
 
 ndims = size(vectors,2);
@@ -26,7 +26,7 @@ for d = 1 : ndims
         testvecs(d,:) = testvecs(d,:) - testvecs(d,:) * vectors(dn,:)' / sum(vectors(dn,:).^2) * vectors(dn,:);
     end
 end
-[s, order] = sort(sum(testvecs.^2),2,'descend');
+[~, order] = sort(sum(testvecs.^2),2,'descend');
 
 normals = testvecs(order(1:(ndims-ndimneu)),:); 
 nhyp = ndims-ndimneu;
@@ -63,7 +63,8 @@ for h = 1:nhyp
             str.coordlist = cutpoints;
             str = coordtransform(str, 'projection', [vectors; normals(2:end,:)], origin); 
             cutpoints = str.coordlist;
-            [K,vol(c)] = convhulln(cutpoints);
+            if size(cutpoints,2)==1, [~,K(1)]=min(cutpoints); [~,K(2)]=max(cutpoints); % in 1d
+                else [K,vol(c)] = convhulln(cutpoints); end
             if sortedges  % in 2D, sort vertices in continuous order
                 pointorder = [K(1,:), zeros(1,size(K,1)-2)];
                 lastpoint = K(1,2);

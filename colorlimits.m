@@ -4,16 +4,17 @@ function colorlimits(figh)
 % Simple dialog window to set the limits of the colorscale
 % figh is handle to the figure
 
-% P. Steffens 08/2009
+% P. Steffens 08/2009 - 08/2014
 
 
 % Find max and min of data in figure
 try
     [figdat,windat] = getfiguredata(figh);
-    dlims = [min(figdat.valuelist(:,1)), max(figdat.valuelist(:,2))];
+    allval = mergelist(figdat,'valuelist');
+    dlims = [min(allval(:,1)), max(allval(:,1))];
     if strcmpi(windat.linlog,'LOG')
-        m = min(figdat.valuelist(:,1));
-        cd = log10(figdat.valuelist(:,1) + max(0,-m) + 1);
+        m = min(allval(:,1));
+        cd = log10(allval(:,1) + max(0,-m) + 1);
         dlims = [min(cd), max(cd)];
     end
     clims = caxis(windat.axeshandle);

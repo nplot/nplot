@@ -4,13 +4,13 @@ function sums = sumsteps(scan,mode)
 % Use plot(sumsteps(..)) to plot
 % scan can be filename or scan structure
 % mode: 'original' (standard), 'monitor' normalized, 'relative' (mean=1)
-%
+
 % P. Steffens, 04/2008
 
 %%
 % If argument is filename, load scan first
 if ~isstruct(scan)
-    [scan, nscans] = tasread(scan);
+    scan = tasread(scan);
 end
 
 sums = sum(scan.MULTI, 2);  % do simple summation...

@@ -18,6 +18,7 @@ function [cutpoints, poly1, poly2, npoly1, npoly2] = polyhypercut(pointset, norm
 
 % Attention with flat facets (e.g. flat 2D polygons in 3d): result contains
 % more points than necessary (but is not false)
+% Attention 2: point list is not necessarily unique!
 
 % P. Steffens, 04/2009
 

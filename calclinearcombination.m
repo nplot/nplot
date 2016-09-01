@@ -17,10 +17,8 @@ if isempty(gridstep), try %#ok<ALIGN>
     catch fprintf('Error: Need a ''dist'' parameter in ''calclinearcombination''.\n'); errorstate = true; return; end
 end
 
+legendtext =calcstring;
     
-data.legend = calcstring;
-dataname = [calcstring, ': ', data.dataname];
-
 [st,en] = regexp(calcstring, 'PAL\d+'); %find all PALx entries in calcstring
 for i=numel(st):-1:1
     % Convert calcstring in matlab readable string (PALx --> PAL(:,x))
@@ -47,6 +45,8 @@ for i = 2:numel(cind)
 end
 data = comb;
 data.polarized = false;
+data.legend = legendtext;
+dataname = [legendtext, ': ', data.dataname];
 if isfield(data,'taglist'), data = rmfield(data,'taglist'); end
 if isfield(data,'dataname'), data.dataname = dataname; end
 

@@ -14,26 +14,28 @@ function [scans, nscans, nodata]=tasread(filenames, varargin)
 % containing fields for ALL variables and values found in the file. Further
 % processing or organization of the data (for instance approriate for polarization 
 % analysis, Flatcone, etc.) is thus to be done by calling routines.
-%
-% 
-%
-% P. Steffens 07/12
-%
 
 
-function matches = regexpmatch(text,expr)
-% Simulates the behavior of regexp(..,..,'match'), which is not implemented
-% in older Matlab-Versions
-[st,en] = regexp(text,expr);
-matches=[];
-for ii=1:numel(st)
-    matches{ii}=text(st(ii):en(ii));
-end
-end
+% P. Steffens 07/12 - 08/2014
+
+
+
+% function matches = regexpmatch(text,expr)
+% % Simulates the behavior of regexp(..,..,'match'), which is not implemented
+% % in older Matlab-Versions
+% [st,en] = regexp(text,expr);
+% matches=[];
+% for ii=1:numel(st)
+%     matches{ii}=text(st(ii):en(ii));
+% end
+% end
 
 %%
 
 filelist = multifilename(filenames);
+
+% Check if files are present (and download them, if varargin contains 'download')
+checkfile(filelist,varargin{:});
 
 nscans= length(filelist);
 notloaded = [];
@@ -57,22 +59,22 @@ for j=1:nscans
 
     [FID,message] = fopen(filename,'rt');
     
-    if strcmpi(message,'No such file or directory') && any(strcmpi(varargin,'download'))
-        % Try to download from server
-        [dwnl,dwnlsrv] = downloadfile(filename,dwnl,dwnlsrv);
-        [FID,message] = fopen(filename,'rt');
-        if isempty(message), fprintf('%s copied from %s.\n', filename, dwnlsrv); end
-    end     
-    
     if (~isempty(message))
          disp(['An error occured while opening the file ' filename ': ' message ]);
-        notloaded = [notloaded,nsc];
+        notloaded = [notloaded,nsc]; %#ok<AGROW>
         continue;
     end
 
-    while 1
-        fline=fgetl(FID); %read line
-        if fline==-1, break, end
+    filecontent = fread(FID);   % read whole file at once
+    endline = [0, find(filecontent==10 | filecontent==13)', numel(filecontent)+1];
+    nl=1;
+    while nl < numel(endline)-1
+        nl=nl+1;
+        fline = strtrim(char(filecontent(endline(nl-1)+1:endline(nl)-1)'));
+% %     while 1
+% %         fline=fgetl(FID); %read line
+% %         if fline==-1, break, end
+        if isempty(fline), continue, end
 
         %Beginning of line
         if fline(1)>='A' && fline(1)<='Z' %#ok<ALIGN> %if starts with letter
@@ -98,8 +100,10 @@ for j=1:nscans
 
         %Begin of DATA or MULTI block
         if strcmp(section,'DATA')
-            fline=fgetl(FID); %read line
-            if fline==-1, break, end
+% %             fline=fgetl(FID); %read line
+% %             if fline==-1, break, end
+            nl = nl+1; fline = strtrim(char(filecontent(endline(nl-1)+1:endline(nl)-1)'));
+            if isempty(fline), break, end
             scanfile.DATA.columnames = regexpmatch(fline,'\S+');
             indata=1;
             dline=0;
