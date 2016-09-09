@@ -4,7 +4,7 @@ function [val paramnames paramnum description] = pvoigtcut(param,x,opt)
 % Pseudo-Voigt function 
 % parameters: x0, Amplitude, width, eta
 
-description  = 'Pseudo-Woigt';
+description  = 'Pseudo-Voigt';
 paramnames   = {'x0', 'Amplitude', 'Width', 'Eta', 'Cutoff'};  paramnum = length(paramnames);
 
 if isempty(param) || ((nargin>2) && (strcmpi(opt,'INFO'))),  val=[]; return; end
@@ -20,3 +20,6 @@ eta   = param(4);
 cutoff= param(5);
 
 val = cutoff * atan(1/cutoff* inten * ( eta * lorentzA([xc,1,fwhm],x) + (1-eta) * gaussA([xc,1,fwhm],x) ));
+
+end
+
