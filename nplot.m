@@ -50,13 +50,14 @@ function [avgdata,fitresult] = nplot(files, varargin)
 % 'showfit'     : Write Fit results in the graphics window
 % 'llb'         : Use input routine for LLB scan file format
 % 'panda'       : Use input routine for Panda scan file format (Frm2)
+% 'FCSumAll'    : For a scan with Flatcone, sum up all channels
 % '..'          : Use same parameter list as for previous call of nplot (parameters can be added, '*' to overwrite previous)
 %
 % Output: 
 %   avgdata:   list of binned and averaged data
 %   fitresult: If a fit has ben performed, result of fit parameters
 
-% P. Steffens, 2/2015
+% P. Steffens, 6/2016
 
 
 
@@ -65,7 +66,7 @@ function [avgdata,fitresult] = nplot(files, varargin)
 
 %% Check input
 knownoptions = {'var','xvar','yvar','plotaxes','plotstyle','monitor','time','legend','offset','setpal','step','start','end','maxdist','reintegrateimps','only','xtransform','ytransform','calc','fit','startval','fitvar','constraint'};
-knownswitches = {'overplot','details','nobin','nooutput','nolegend','noplot','showfit','llb','panda','..'};
+knownswitches = {'overplot','details','nobin','nooutput','nolegend','noplot','showfit','llb','panda','fcsumall','..'};
 
 % Set output options
 if any(strcmpi(varargin,'details')), showdetails=true; else showdetails=false; end  % Detailed output? 
@@ -230,24 +231,26 @@ for ns = 1:length(scans)
     % (one count per line)
         fcufile = true;
         scans{ns}.POLAN = {'fcu Up', 'co', 'fcu Down', 'co'};
-        fields = fieldnames(scans{ns}.DATA);
-        cnr = find(strcmpi('columnames',fields));
-        for line =1:size(scans{ns}.DATA.PNT,1)
-            for fnr = setdiff(1:length(fields), cnr) % Disregard field "columnnames"
-                if isempty(regexp(upper(fields{fnr}),'UP|DOWN', 'once' ))
-                    DATANEW.(fields{fnr})(2*line-1:2*line, 1) = scans{ns}.DATA.(fields{fnr})(line);
+        if ~isfield(scans{ns}.DATA,'PAL') % if there are already PAL's, do not need the following (for IN22 files)
+            fields = fieldnames(scans{ns}.DATA);
+            cnr = find(strcmpi('columnames',fields));
+            for line =1:size(scans{ns}.DATA.PNT,1)
+                for fnr = setdiff(1:length(fields), cnr) % Disregard field "columnnames"
+                    if isempty(regexp(upper(fields{fnr}),'UP|DOWN', 'once' ))
+                        DATANEW.(fields{fnr})(2*line-1:2*line, 1) = scans{ns}.DATA.(fields{fnr})(line);
+                    end
                 end
+                DATANEW.PAL(2*line-1,1) = 1;
+                DATANEW.PAL(2*line,  1) = 2;
+                DATANEW.M1(2*line-1,1) = scans{ns}.DATA.M_UP(line);
+                DATANEW.M1(2*line,  1) = scans{ns}.DATA.M_DOWN(line);
+                DATANEW.CNTS(2*line-1,1) = scans{ns}.DATA.DET_UP(line);
+                DATANEW.CNTS(2*line,  1) = scans{ns}.DATA.DET_DOWN(line);
+                DATANEW.TIME(2*line-1,1) = scans{ns}.DATA.T_UP(line);
+                DATANEW.TIME(2*line,  1) = scans{ns}.DATA.T_DOWN(line);            
             end
-            DATANEW.PAL(2*line-1,1) = 1;
-            DATANEW.PAL(2*line,  1) = 2;
-            DATANEW.M1(2*line-1,1) = scans{ns}.DATA.M_UP(line);
-            DATANEW.M1(2*line,  1) = scans{ns}.DATA.M_DOWN(line);
-            DATANEW.CNTS(2*line-1,1) = scans{ns}.DATA.DET_UP(line);
-            DATANEW.CNTS(2*line,  1) = scans{ns}.DATA.DET_DOWN(line);
-            DATANEW.TIME(2*line-1,1) = scans{ns}.DATA.T_UP(line);
-            DATANEW.TIME(2*line,  1) = scans{ns}.DATA.T_DOWN(line);            
+            scans{ns}.DATA = DATANEW;
         end
-        scans{ns}.DATA = DATANEW;
     elseif fcufile
         fprintf('Error: There seem to be files in fcu-mode and others in standard morde. Cannot mix.\n');
         if nargout, avgdata = []; else clear avgdata; end; return;
@@ -329,23 +332,28 @@ for scannr = 1:length(scans)
             fprintf('Error: Trying to combine multidetector data with normal data. I don''t know how to do this.\n'); 
             if nargout, avgdata = []; else clear avgdata; end; return; 
         end
-        data.multichannel = true;
-        actchannel = scan.PARAM.CHAN;
-        channelname = 'CHAN';  % Name of the column that designates the channel number
-        % Convert MULTI-data in column format to treat in the following
-        colform = size(scan.DATA.PNT);
-        a4val = getvar(scan,'A4');
-        datacolnames = scan.DATA.columnames;
-        scan.DATA.CHAN = ones(colform) * actchannel;
-        scan.DATA.TWOTHETA = a4val + (actchannel-16)*2.5;
-        for ch=[1:(actchannel-1),(actchannel+1):size(scan.MULTI,2)]
-            scan.DATA.CHAN = [scan.DATA.CHAN ; ones(colform) * ch];
-            scan.DATA.TWOTHETA = [scan.DATA.TWOTHETA; a4val + (ch-16)*2.5];
-            for col = 1:length(datacolnames)
-                if ~strcmpi(datacolnames{col},'CNTS')
-                    scan.DATA.(datacolnames{col}) = [scan.DATA.(datacolnames{col}); scan.DATA.(datacolnames{col})(1:colform(1))];
-                else
-                    scan.DATA.CNTS = [scan.DATA.CNTS; scan.MULTI(:,ch)];
+        if any(strcmpi(varargin,'fcsumall'))
+            % take sum of all Flatcone channels; treat like normal scan
+            scan.DATA.CNTS = sum(scan.MULTI,2);
+        else
+            data.multichannel = true;
+            actchannel = scan.PARAM.CHAN;
+            channelname = 'CHAN';  % Name of the column that designates the channel number
+            % Convert MULTI-data in column format to treat in the following
+            colform = size(scan.DATA.PNT);
+            a4val = getvar(scan,'A4');
+            datacolnames = scan.DATA.columnames;
+            scan.DATA.CHAN = ones(colform) * actchannel;
+            scan.DATA.TWOTHETA = a4val + (actchannel-16)*2.5;
+            for ch=[1:(actchannel-1),(actchannel+1):size(scan.MULTI,2)]
+                scan.DATA.CHAN = [scan.DATA.CHAN ; ones(colform) * ch];
+                scan.DATA.TWOTHETA = [scan.DATA.TWOTHETA; a4val + (ch-16)*2.5];
+                for col = 1:length(datacolnames)
+                    if ~strcmpi(datacolnames{col},'CNTS')
+                        scan.DATA.(datacolnames{col}) = [scan.DATA.(datacolnames{col}); scan.DATA.(datacolnames{col})(1:colform(1))];
+                    else
+                        scan.DATA.CNTS = [scan.DATA.CNTS; scan.MULTI(:,ch)];
+                    end
                 end
             end
         end
@@ -419,7 +427,8 @@ for scannr = 1:length(scans)
             end
         end
     catch
-        fprintf('Error: Could not combine file %s with the others. (Check file format!)\n', scan.FILE); 
+        if scannr==1, fprintf('Error: Problem with file %s. (Check the file format!)\n', scan.FILE); 
+        else          fprintf('Error: Could not combine file %s with the others. (There may be a problem with the file format, please check.)\n', scan.FILE); end
         if nargout, avgdata = []; else clear avgdata; end; return; 
     end
     
@@ -767,7 +776,7 @@ if ~isempty(posqestring), stdlegtext = [files, '; ', posqestring]; end
 
 % assign legtext and pstyle to dplot structs
 for np=1:numplots
-   if ~isempty(pstyle),  if iscell(pstyle),  dplot{np}.plotstyle = pstyle{mod(np-1, length(pstyle)) +1}; else dplot{np}.plotstyle=pstyle; end; end
+   if ~isempty(pstyle),  if iscell(pstyle),  dplot{np}.plotstyle = pstyle{mod(np-1, length(pstyle)) +1}; else dplot{np}.plotstyle=pstyle; end;    end
    if ~isempty(legtext), if iscell(legtext), dplot{np}.legend   = legtext{mod(np-1, length(legtext))+1}; else dplot{np}.legend=legtext;   end; 
    elseif (~isfield(dplot{np},'legend') || isempty(dplot{np}.legend)) && ~any(strcmpi(varargin,'nolegend'))
        dplot{np}.legend  = stdlegtext; % use standard text if no other provided 
@@ -798,7 +807,12 @@ if ~strcmpi(axhandle, 'none')
     thesearenewaxes = numel(findobj(get(axhandle(axnum),'children'),'tag','data'))==0; 
     
     % Do plot
-    plot1d(dplot,'axdim',plotvar,'axhandle',axhandle(axnum),varargin{:});
+    linespecs = plot1d(dplot,'axdim',plotvar,'axhandle',axhandle(axnum),varargin{:});
+    
+    % Assign linespecs to dplot structs
+    for np=1:numplots
+        if ~isfield(dplot{np},'plotstyle'), dplot{np}.plotstyle = linespecs{np}; end
+    end
     
     % Label x and y axes
     xlabeltext = data.variables{plotvar};
