@@ -1,6 +1,6 @@
-function plot1d(list,varargin)
+function linespecs =  plot1d(list,varargin)
 
-% function plot1d(list,axdim,axhandle)
+% function linespecs = plot1d(list,axdim,axhandle)
 % list:     Data in liststruct format, may be cell array
 % varargin may contain:
 % 'axdim', dim:         Which coordinate dimension to use as x-axis
@@ -8,18 +8,21 @@ function plot1d(list,varargin)
 %           (can be array to use multiple when list is cell array)
 % 'offset', yoff:       Offset on y-axis
 % 'plotstyle', pstyle:  (default) plotstyle string. (Overrides .plotstyle field in list) 
+% Returns:
+% linespecs: Cell array of plotstyles
 
 % - saves a struct plotdataset in guidata of current figure for each data set:
 %   .x, .y, .dy, .axhandle, .plothandle, (.mlist), (.tlist), (.legendtext)
 % - updates the data cursor display of the figure window appropriately
 
-% P. Steffens, 03/2015
+% P. Steffens, 06/2016
 
 
 if ~iscell(list), m = list; clear list; list{1}=m;  clear m; end % ensure cell array
 
 plottype={'ob','or','ok','og','oc','fb','fr','fk','fg','fc'};
 multipleaxes = false;
+linespecs = {};
 
 % interpret varargin
 axdim   = readinput('axdim',varargin); if isempty(axdim), axdim = 1; end
@@ -55,6 +58,8 @@ for num = 1:length(list)
     else linespec = plottype{mod(num-1+dcount,length(plottype))+1}; % default
     end 
     if strfind(linespec,'f'), linespec(linespec=='f') = 'o'; filled = true; else filled=false; end
+    
+    linespecs{num}=linespec; %#ok<AGROW>
     
     % Plot
     h = errorbar(list{num}.coordlist(:,axdim), list{num}.valuelist(:,1)+yoffset, list{num}.valuelist(:,2), linespec , ...
