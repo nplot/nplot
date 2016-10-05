@@ -373,11 +373,15 @@ for scannr = 1:length(scans)
             if nargout, avgdata = []; else clear avgdata; end; return;
         end        
     elseif isfield(scan,'POLAN')
-        if (scannr>1) && ~data.polarized, fprintf('Error (in %s): Trying to combine non-polarized with polarized data.\n',scan.FILE); if nargout, avgdata = []; else clear avgdata; end; return; end
-        data.polarized = true;
-        % Analyze the information in POLAN and create (append) the list of
-        % PAL-Definitions (paldeflist)
-        [data.paldeflist, assignpal] = analyzepal(scan, data.paldeflist);
+        if isfield(scan.DATA,'PAL')
+            if (scannr>1) && ~data.polarized, fprintf('Error (in %s): Trying to combine non-polarized with polarized data.\n',scan.FILE); if nargout, avgdata = []; else clear avgdata; end; return; end
+            data.polarized = true;
+            % Analyze the information in POLAN and create (append) the list of
+            % PAL-Definitions (paldeflist)
+            [data.paldeflist, assignpal] = analyzepal(scan, data.paldeflist);
+        else
+            fprintf('Warning: Inconsistent file format in %s. Found POLAN, but no PAL''s. Treat as unpolarized (please check).\n',scan.FILE);
+        end
     end
     
     % Append to lists
