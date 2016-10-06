@@ -124,6 +124,12 @@ if isempty(listtype) || isempty(plottype)
 end
 
 
+% Some more command line options
+if ~isempty(readinput('monitor',varargin)) && isempty(readinput('normalizeto',varargin)), val = readinput('monitor',varargin,'last');  varargin = [varargin, 'normalizeto M1','normval', val]; end
+if ~isempty(readinput('time',varargin))    && isempty(readinput('normalizeto',varargin)), val = readinput('time',   varargin,'last');  varargin = [varargin, 'normalizeto TIME','normval', val]; end
+
+
+
 %%
 % Something to treat future case of several analyzers per channel 
 % (e.g. Berlin-Multiflex, Panda-Bambus, camea, etc.). So far, only for Multiflexx
@@ -157,7 +163,7 @@ for number = 1:numberofslices
     end
 
     % Combine and average data
-    avg{number} = cmbavg(linearlist); %#ok<*AGROW>
+    avg{number} = cmbavg(linearlist, [], varargin{:}); %#ok<*AGROW>
     if isempty(avg{number}); fprintf('No data in slice %d.\n',number);  continue; else hassomedata=true; end
 
     % For polarized data:

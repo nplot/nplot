@@ -313,7 +313,7 @@ for i=1:nscans
     norm_measured = getvar(scan,normalizeto); 
     
     if any(norm_measured == 0), fprintf(['Warning: During normalization on ' normalizeto ' some zero values in ' normalizeto ' occured. Please check the settings for normalization!\n']); end
-    if isempty(norm_measured), fprintf(['Error: Could not perform normalization: ' normalizeto ' not found in scan file.\n']);  liststruct = []; return; end
+    if isempty(norm_measured), fprintf(['Error: Could not perform normalization: ' normalizeto ' column not found in scan file.\n']);  liststruct = []; return; end
     
     if flatconemode
         norm_measured = repmat(norm_measured,[1,numel(channels)]); 

@@ -131,8 +131,9 @@ box on
 
 %% Plot
 errorbar(plotstruct.scandata.x, plotstruct.scandata.y, plotstruct.scandata.dy,'ob');
-[normalizeto,normval] = getoption('normalizeto','normval');
-ylabel(['Counts per ' normalizeto '=' num2str(normval)]);
+if isfield(plotstruct,'properties') && isfield(plotstruct.properties,'normalization')
+    ylabel(['Counts per ' plotstruct.properties.normalization]);
+end
 xlabel(xlabeltext);
 
 %%

@@ -13,9 +13,9 @@ function output=cmbavg(scanlist,opt,varargin)
 % varargin conatining 'ignore [CONST]' ignores deviations in constant(s)
 
 
-% % P. Steffens 8/2014
+% % P. Steffens 10/2016
 
-if nargin<2   opt = 'standard'; end %#ok<SEPEX>
+if nargin<2 || isempty(opt),  opt = 'standard'; end 
 
 output = [];
 nscans = length(scanlist);
@@ -173,7 +173,7 @@ if isempty(bindist)
         fprintf('Error: your options.m file does not contain the field ''stdbindist.%s''.\n',output.coordtype); output=[]; return;
     end
 end
-normval = readinput('monitor',varargin);
+normval = readinput('monitor',varargin); if isempty(normval),normval = readinput('time',varargin); end
 if isempty(normval), normval = getoption('normval','check',varargin); end
 gridstep = readinput('grid',varargin);
 %if isempty(gridstep) && ~strcmpi(opt,'EXPLICIT'), stdgrid = getoption('stdgrid','check',varargin); gridstep=stdgrid.(output.coordtype); end
