@@ -16,7 +16,7 @@ function [avgdata,fitresult] = nplot(files, varargin)
 %                           If this option is used, NO normalization and averaging is done.
 % 'plotaxes', axhandle :    Give either valid axes handle or 'none' to supress plot. New window, if not given. 
 % 'plotstyle', {'s1',..}:   Strings defining the marker style for each pal-series (e.g. 'or', '*b', etc.)
-% 'monitor', monval :       Monitor to use for mormalization. If not given, use first M1 value of first scan.
+% 'monitor', monval :       Monitor to use for normalization. If not given, use first M1 value of first scan.
 % 'time', time (s) :        If given instead of monitor, normalize on time (in seconds)
 % 'legend', legtext:        A text (can be cell array) to display as legend
 % 'offset', offset:         Shift plot on y-axis by [offset]
@@ -47,15 +47,15 @@ function [avgdata,fitresult] = nplot(files, varargin)
 % 'nooutput'    : suppress all text output except errors. 
 % 'nolegend'    : do not put a legend
 % 'noplot'      : do not plot the results. (like 'plot none')
-% 'showfit'     : Write Fit results in the graphics window
+% 'showfit'     : Write fit results in the graphics window
 % 'llb'         : Use input routine for LLB scan file format
-% 'panda'       : Use input routine for Panda scan file format (Frm2)
+% 'panda'       : Use input routine for Panda scan file format (FRM-2)
 % 'FCSumAll'    : For a scan with Flatcone, sum up all channels
 % '..'          : Use same parameter list as for previous call of nplot (parameters can be added, '*' to overwrite previous)
 %
 % Output: 
-%   avgdata:   list of binned and averaged data
-%   fitresult: If a fit has ben performed, result of fit parameters
+%   avgdata     : list of binned and averaged data
+%   fitresult   : If a fit has been performed, print the resulting fit parameters
 
 % P. Steffens, 6/2016
 
@@ -626,7 +626,7 @@ end
 
 
 
-% À faire:::
+% Ã€ faire:::
 %gridstep (gridstep==0) = .01;
 lambdastart = min(lambdai) / (gridstep(:)'*gridstep(:));
 lambdaend = max(lambdai) / (gridstep(:)'*gridstep(:));
