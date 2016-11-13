@@ -50,14 +50,15 @@ function [avgdata,fitresult] = nplot(files, varargin)
 % 'showfit'     : Write fit results in the graphics window
 % 'llb'         : Use input routine for LLB scan file format
 % 'panda'       : Use input routine for Panda scan file format (FRM-2)
+% 'nopalanalysis: Ignore content of POLAN, just use pal-values as in file 
 % 'FCSumAll'    : For a scan with Flatcone, sum up all channels
 % '..'          : Use same parameter list as for previous call of nplot (parameters can be added, '*' to overwrite previous)
 %
 % Output: 
 %   avgdata     : list of binned and averaged data
-%   fitresult   : If a fit has been performed, print the resulting fit parameters
+%   fitresult   : If a fit has been performed, the resulting fit parameters
 
-% P. Steffens, 6/2016
+% P. Steffens, 11/2016
 
 
 
@@ -66,7 +67,7 @@ function [avgdata,fitresult] = nplot(files, varargin)
 
 %% Check input
 knownoptions = {'var','xvar','yvar','plotaxes','plotstyle','monitor','time','legend','offset','setpal','step','start','end','maxdist','reintegrateimps','only','xtransform','ytransform','calc','fit','startval','fitvar','constraint'};
-knownswitches = {'overplot','details','nobin','nooutput','nolegend','noplot','showfit','llb','panda','fcsumall','..'};
+knownswitches = {'overplot','details','nobin','nooutput','nolegend','noplot','showfit','llb','panda','nopalanalysis','fcsumall','..'};
 
 % Set output options
 if any(strcmpi(varargin,'details')), showdetails=true; else showdetails=false; end  % Detailed output? 
@@ -376,9 +377,14 @@ for scannr = 1:length(scans)
         if isfield(scan.DATA,'PAL')
             if (scannr>1) && ~data.polarized, fprintf('Error (in %s): Trying to combine non-polarized with polarized data.\n',scan.FILE); if nargout, avgdata = []; else clear avgdata; end; return; end
             data.polarized = true;
-            % Analyze the information in POLAN and create (append) the list of
-            % PAL-Definitions (paldeflist)
-            [data.paldeflist, assignpal] = analyzepal(scan, data.paldeflist);
+            if ~any(strcmpi(varargin,'nopalanalysis'))
+                % Analyze the information in POLAN and create (append) the list of
+                % PAL-Definitions (paldeflist)
+                [data.paldeflist, assignpal] = analyzepal(scan, data.paldeflist);
+            else
+                assignpal = (1:max(scan.DATA.PAL))'; 
+                for ii = (length(data.paldeflist)+1):max(scan.DATA.PAL), data.paldeflist{ii}.PAL = ii; end
+            end
         else
             fprintf('Warning: Inconsistent file format in %s. Found POLAN, but no PAL''s. Treat as unpolarized (please check).\n',scan.FILE);
         end
@@ -626,7 +632,7 @@ end
 
 
 
-% Ã€ faire:::
+% À faire:::
 %gridstep (gridstep==0) = .01;
 lambdastart = min(lambdai) / (gridstep(:)'*gridstep(:));
 lambdaend = max(lambdai) / (gridstep(:)'*gridstep(:));

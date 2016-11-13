@@ -102,17 +102,20 @@ for i=1:nscans
             if isfield(scan.DATA,'GU'), scan.DATA.GU = scan.DATA.GU*0; end
             if isfield(scan.DATA,'GL'), scan.DATA.GL = scan.DATA.GL*0; end
         end
-    else
+    end
+    
+    
     % Do nevertheless a plausibility test for Gonios 
         dv = datevec(scan.DATE);
         if dv(1)<2008 && all(isfield(scan.VARIA,{'GU','GL'})) && any(abs([scan.VARIA.GU,scan.VARIA.GL])>0.2)
             % old data, there was no 3D mode yet
             fprintf('Scan %s is old data with non-zero Gonios. You might want to use the switch "2DMode" or "nogoniomode" to ignore these values.\n',scan.FILE);
         elseif (isfield(scan.VARIA,'GL') && abs(scan.VARIA.GL)>30) || (isfield(scan.VARIA,'GU') && abs(scan.VARIA.GU)>30) || ...
-               (isfield(scan.DATA,'GU') && max(abs(scan.DATA.GU))>30) || (isfield(scan.DATA,'GU') && max(abs(scan.DATA.GU))>30)         
+               (isfield(scan.DATA,'GL') && max(abs(scan.DATA.GL))>30) || (isfield(scan.DATA,'GU') && max(abs(scan.DATA.GU))>30) || ...
+               (isfield(scan.ZEROS,'GL') && abs(scan.ZEROS.GL)>30) || (isfield(scan.ZEROS,'GU') && abs(scan.ZEROS.GU)>30)
             fprintf('In file %s the values for the Gonios are unrealistically large. Please check.\nYou can use the switch "2DMode" or "nogoniomode" to ignore them. Continue...\n',scan.FILE);
         end
-    end
+    
     
    
     liststruct.sampleinfo.lattice = getlattice(scan);
@@ -302,9 +305,14 @@ for i=1:nscans
     elseif isfield(scan,'POLAN')
         if (i>1) && ~polarized, fprintf('Error: Trying to combine non-polarized with polarized data.\n'); liststruct = []; return; end
         polarized = true;
-        % Analyze the information in POLAN and create (append) the list of
-        % PAL-Definitions (paldeflist)
-        [paldeflist, assignpal] = analyzepal(scan, paldeflist);
+        if ~any(strcmpi(varargin,'nopalanalysis'))
+            % Analyze the information in POLAN and create (append) the list of
+            % PAL-Definitions (paldeflist)
+            [paldeflist, assignpal] = analyzepal(scan, paldeflist);
+        else
+            assignpal = (1:max(scan.DATA.PAL))'; 
+            for ii = (length(paldeflist)+1):max(scan.DATA.PAL), paldeflist{ii}.PAL = ii; end
+        end
     end
     
     

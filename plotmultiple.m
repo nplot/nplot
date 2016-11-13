@@ -37,7 +37,7 @@ function avg = plotmultiple(scanlist,varargin)
 % plotmultiple 012345 normalizeto M1 normval 1000 vanacorr 2 det_eff [1,1,.99,1.01,1, ...]
 
 
-% P. Steffens 08/2014
+% P. Steffens 11/2016
 
 
 avg = [];
