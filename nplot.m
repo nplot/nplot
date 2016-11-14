@@ -16,6 +16,7 @@ function [avgdata,fitresult] = nplot(files, varargin)
 %                           If this option is used, NO normalization and averaging is done.
 % 'plotaxes', axhandle :    Give either valid axes handle or 'none' to supress plot. New window, if not given. 
 % 'plotstyle', {'s1',..}:   Strings defining the marker style for each pal-series (e.g. 'or', '*b', etc.)
+%                           For multiple, can be like "plotstyle {'or','fb'}" or "plotstyle or|fb"
 % 'monitor', monval :       Monitor to use for normalization. If not given, use first M1 value of first scan.
 % 'time', time (s) :        If given instead of monitor, normalize on time (in seconds)
 % 'legend', legtext:        A text (can be cell array) to display as legend

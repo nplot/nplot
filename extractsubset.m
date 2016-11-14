@@ -6,7 +6,7 @@ function erg = extractsubset(data,field,value,chname)
 % or a certain ROI or CHAN from multichannel data
 % Guess, at the same time, a plot style by analyzing the pal-Definition
 %
-% P. Steffens, 10/2011
+% P. Steffens, 11/2016
 
 erg = data;
 ind = (data.(field) == value);
@@ -24,7 +24,7 @@ if isfield(data,'channellist'), erg.channellist = data.channellist(ind); end
 if strcmpi(field,'pallist')
     erg.legend = ['pal', num2str(value,'%d'),': '];
 elseif strcmpi(field,'channellist')
-    if nargin>3 erg.legend = [chname ' ', num2str(value,'%d') ' '];
+    if nargin>3, erg.legend = [chname ' ', num2str(value,'%d') ' '];
     else erg.legend = ['Channel ', num2str(value,'%d') ' ']; end
 else
     erg.legend = [num2str(value,'%d'),': '];
@@ -41,21 +41,27 @@ if strcmpi(field,'pallist')
 
     % Guess a color and point style...
     % (by looking in which direction points H/P1 and looking at flipper states)
-    erg.plotstyle.color = 'c'; 
+    erg.plotstyle.color = 'k'; 
     erg.plotstyle.Marker = 'o';
+    erg.plotstyle.MarkerFaceColor = 'none';
     cstring = 'rgb';
     if isfield(data.paldeflist{value},'HX')
-        [m,mi] = max(abs(data.paldeflist{value}.HX));
+        [~,mi] = max(abs(data.paldeflist{value}.HX));
         erg.plotstyle.color = cstring(mi);
     elseif isfield(data.paldeflist{value},'P1')
-        [m,mi] = max(abs(data.paldeflist{value}.P1));
+        [~,mi] = max(abs(data.paldeflist{value}.P1));
         erg.plotstyle.color = cstring(mi);
     elseif isfield(data.paldeflist{value},'fcu')
         if strcmpi(data.paldeflist{value}.fcu,'up'), erg.plotstyle.color = cstring(1); else erg.plotstyle.color = cstring(3); end
+    else
+        cstring='rkcmgb'; erg.plotstyle.color = cstring(mod(value,6)+1);
     end
-    erg.plotstyle.MarkerFaceColor = 'none';
+    if isfield(data.paldeflist{value},'FLIPPER')
+        if strcmpi(data.paldeflist{value}.FLIPPER,'on') || data.paldeflist{value}.FLIPPER==1, erg.plotstyle.MarkerFaceColor = erg.plotstyle.color; end
+    elseif ~isempty(strfind(erg.legend,'F2 on')) || ~isempty(strfind(erg.legend,'FLIPPER on')) || ~isempty(strfind(erg.legend,'I10 -'))
+        erg.plotstyle.MarkerFaceColor = erg.plotstyle.color; 
+    end
     if ~isempty(strfind(erg.legend,'F1 on')) || ~isempty(strfind(erg.legend,'I9 -')), erg.plotstyle.Marker = 's'; end
-    if ~isempty(strfind(erg.legend,'F2 on')) || ~isempty(strfind(erg.legend,'FLIPPER on')) || ~isempty(strfind(erg.legend,'I10 -')), erg.plotstyle.MarkerFaceColor = erg.plotstyle.color; end
 end
     
 erg.type = data.type;
