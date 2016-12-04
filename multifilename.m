@@ -1,21 +1,18 @@
 function filelist = multifilename(file)
-
 % Returns cell array of full path filenames
-
 % P. Steffens, 4/2015
 
-function res = ssplit(str) % Replaces Matlab strsplit (not in older versions)
-res={};
-for cmind = fliplr([0,find(str==',')])
-    res = [str(cmind+1:end), res];  %#ok<*AGROW>
-    str = str(1:cmind-1);
+function res = ssplit(str) % Replaces Matlab strsplit (introduced in MATLAB 8.1 (R2013a))
+    res={};
+    for cmind = fliplr([0,find(str==',')])
+        res = [str(cmind+1:end), res];  %#ok<*AGROW>
+        str = str(1:cmind-1);
+    end
 end
-end
-
 
 filelist = {};
 
-if ~isempty(strfind(file,'[')) % if there's multiple scans
+if ~isempty(strfind(file,'[')) % if there are multiple scans
     
     checkstring = file( find(file=='[',1,'first') : find(file==']',1,'last') );
 
@@ -26,9 +23,9 @@ if ~isempty(strfind(file,'[')) % if there's multiple scans
         fprintf('String cannot be evaluated. Check input!\n'); return;
     end
     
-    % check for leading zeroes in all elements
+    % check for preceding zeros in all elements
     z1 = regexp(checkstring,'\d+'); % starting ind. of all elements
-    z2 = regexp(checkstring,'(?=0*)[1-9]\d*');  % -"- without leading zeroes
+    z2 = regexp(checkstring,'(?=0*)[1-9]\d*');  % -"- without preceding zeros
     zeroadd = min(z2-z1);
     % Treat part before []
     filefront = file(1:find(file=='[',1,'first')-1);
@@ -48,11 +45,8 @@ if ~isempty(strfind(file,'[')) % if there's multiple scans
     end
 
     filelist = [filefront, multifile, fileback];
-
 else
     filelist = ssplit(file);
 end
-
-
 end
 
