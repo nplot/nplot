@@ -39,6 +39,7 @@ function [avgdata,fitresult] = nplot(files, varargin)
 %                           an automatic guess is performed, if startval not given.
 % 'fitvar', [0,1,..]:       Give 1's for parameters to be fitted, 0's for parameters to be held constant.
 %                           If not given, all are variable.
+% 'common', [1,2,..]:       Indices of common parameters (equal for all datasets if multiple fitting)
 % 'constraint', 'p1=2*p2;..': Constraints for the fit parameters. Enter arbitrary number of linear(!) constraints
 %                           separated by ";", where 'p1', 'p2' etc. denote the parameters of the fit function.
 % Switches:
@@ -49,6 +50,7 @@ function [avgdata,fitresult] = nplot(files, varargin)
 % 'nolegend'    : do not put a legend
 % 'noplot'      : do not plot the results. (like 'plot none')
 % 'showfit'     : Write fit results in the graphics window
+% 'globalfit'   : Simultaneous fitting of all datasets
 % 'llb'         : Use input routine for LLB scan file format
 % 'panda'       : Use input routine for Panda scan file format (FRM-2)
 % 'nopalanalysis: Ignore content of POLAN, just use pal-values as in file 
@@ -67,8 +69,8 @@ function [avgdata,fitresult] = nplot(files, varargin)
 % **Not tested for case of PALs and ROIs at the same time
 
 %% Check input
-knownoptions = {'var','xvar','yvar','plotaxes','plotstyle','monitor','time','legend','offset','setpal','step','start','end','maxdist','reintegrateimps','only','xtransform','ytransform','calc','fit','startval','fitvar','constraint'};
-knownswitches = {'overplot','details','nobin','nooutput','nolegend','noplot','showfit','llb','panda','nopalanalysis','fcsumall','..'};
+knownoptions = {'var','xvar','yvar','plotaxes','plotstyle','monitor','time','legend','offset','setpal','step','start','end','maxdist','reintegrateimps','only','xtransform','ytransform','calc','fit','startval','fitvar','common','constraint'};
+knownswitches = {'overplot','details','nobin','nooutput','nolegend','noplot','globalfit','showfit','llb','panda','nopalanalysis','fcsumall','..'};
 
 % Set output options
 if any(strcmpi(varargin,'details')), showdetails=true; else showdetails=false; end  % Detailed output? 
@@ -110,6 +112,7 @@ end
 [message,~,multipleopt] = checkoptions(varargin, knownoptions, knownswitches,notwarnmultiple);
 if ~isempty(message), fprintf(['Warning(s):\n', message]); end
 if ~isempty(multipleopt), fprintf('If you give multiple values for the same options, the last occurence is used.\n(Use * in front of option name to suppress this warning.)\n'); end
+if any(strcmpi(varargin,'common')) && ~any(strcmpi(varargin,'globalfit')), fprintf('Common-option only used for simultaneous fitting (switch ''globalfit'').\n'); end
 
 %% Read all files
 
@@ -254,7 +257,7 @@ for ns = 1:length(scans)
             scans{ns}.DATA = DATANEW;
         end
     elseif fcufile
-        fprintf('Error: There seem to be files in fcu-mode and others in standard morde. Cannot mix.\n');
+        fprintf(2,'Error: There seem to be files in fcu-mode and others in standard morde. Cannot mix.\n');
         if nargout, avgdata = []; else clear avgdata; end; return;
     end
 end
@@ -279,7 +282,7 @@ if isempty(monval)
     elseif isfield(scan1.DATA,'M1')
         monval = scan1.DATA.M1(1);
     else
-        fprintf('Error: cannot find monitor or time values for normalization. Please check!\n Evtl. try to normalize on time instead monitor (use option "time").\n');
+        fprintf(2,'Error: cannot find monitor or time values for normalization. Please check!\n Evtl. try to normalize on time instead monitor (use option "time").\n');
     end
 end
 
@@ -324,14 +327,14 @@ for scannr = 1:length(scans)
     
     if isfield(scan.DATA,'ROI')
         if (scannr>1) && ~data.multichannel
-            fprintf('Error: Trying to combine multidetector data with normal data. I don''t know how to do this.\n'); 
+            fprintf(2,'Error: Trying to combine multidetector data with normal data. I don''t know how to do this.\n'); 
             if nargout, avgdata = []; else clear avgdata; end; return; 
         end
         data.multichannel = true;
         channelname = 'ROI';  % Name of the column that designates the channel number
     elseif isfield(scan,'MULTI') %Flatcone scan
         if (scannr>1) && ~data.multichannel
-            fprintf('Error: Trying to combine multidetector data with normal data. I don''t know how to do this.\n'); 
+            fprintf(2,'Error: Trying to combine multidetector data with normal data. I don''t know how to do this.\n'); 
             if nargout, avgdata = []; else clear avgdata; end; return; 
         end
         if any(strcmpi(varargin,'fcsumall'))
@@ -361,7 +364,7 @@ for scannr = 1:length(scans)
         end
             
     elseif data.multichannel
-        fprintf('Error: Trying to combine multidetector data with normal data. I don''t know how to do this.\n'); 
+        fprintf(2,'Error: Trying to combine multidetector data with normal data. I don''t know how to do this.\n'); 
         if nargout, avgdata = []; else clear avgdata; end; return;
     end
     
@@ -371,7 +374,7 @@ for scannr = 1:length(scans)
         assignpal = readinput('setpal',varargin,'last');
         scan.DATA.PAL = ones(size(scan.DATA.PNT));
         if isempty(assignpal)
-            fprintf('Error: File %s does not contain polarization info. Use "setpal" option to combine with the others.\n',scan.FILE);
+            fprintf(2,'Error: File %s does not contain polarization info. Use "setpal" option to combine with the others.\n',scan.FILE);
             if nargout, avgdata = []; else clear avgdata; end; return;
         end        
     elseif isfield(scan,'POLAN')
@@ -396,7 +399,7 @@ for scannr = 1:length(scans)
     try
         for ii = 1:length(data.variables)
             if ~isfield(scan.DATA, data.variables{ii}) && ~isfield(scan.DATA, upper(data.variables{ii}))
-                fprintf('Error: Could not find variable %s in file %s. Check file format and spelling (incl. upper/lower case).\n', data.variables{ii}, scan.FILE);
+                fprintf(2,'Error: Could not find variable %s in file %s. Check file format and spelling (incl. upper/lower case).\n', data.variables{ii}, scan.FILE);
                 if nargout, avgdata = []; else clear avgdata; end; return; 
             end
             try
@@ -411,7 +414,7 @@ for scannr = 1:length(scans)
             if nargout, avgdata = []; else clear avgdata; end; return;
         end
         if ~isfield(scan.DATA,moncolumn)
-            fprintf('Error: Could not find %s (used for normalization) in file %s. Check file format and spelling (incl. upper/lower case).\n', moncolumn, scan.FILE);
+            fprintf(2,'Error: Could not find %s (used for normalization) in file %s. Check file format and spelling (incl. upper/lower case).\n', moncolumn, scan.FILE);
             if nargout, avgdata = []; else clear avgdata; end; return; 
         end
         data.monitorlist = [data.monitorlist; scan.DATA.(moncolumn)];
@@ -419,7 +422,7 @@ for scannr = 1:length(scans)
             data.valuelist = [data.valuelist; monval * [scan.DATA.CNTS ./ scan.DATA.(moncolumn), sqrt(scan.DATA.CNTS) ./ scan.DATA.(moncolumn)]];
         else % use other column for y-axis, and NaN's as error
             if ~isfield(scan.DATA,yvar)
-                fprintf('Error: Could not find variable %s in file %d. Check file format and spelling (incl. upper/lower case).\n', yvar, scannr);
+                fprintf(2,'Error: Could not find variable %s in file %d. Check file format and spelling (incl. upper/lower case).\n', yvar, scannr);
                 if nargout, avgdata = []; else clear avgdata; end; return; 
             end
             if any(strcmpi(yvar,{'M1','M2'}))
@@ -438,8 +441,8 @@ for scannr = 1:length(scans)
             end
         end
     catch
-        if scannr==1, fprintf('Error: Problem with file %s. (Check the file format!)\n', scan.FILE); 
-        else          fprintf('Error: Could not combine file %s with the others. (There may be a problem with the file format, please check.)\n', scan.FILE); end
+        if scannr==1, fprintf(2,'Error: Problem with file %s. (Check the file format!)\n', scan.FILE); 
+        else          fprintf(2,'Error: Could not combine file %s with the others. (There may be a problem with the file format, please check.)\n', scan.FILE); end
         if nargout, avgdata = []; else clear avgdata; end; return; 
     end
     
@@ -543,7 +546,7 @@ end
 if isempty(gridstep) && nobinning, gridstep = ones(1,length(data.variables)); end  %(step not used)
 
 if numel(gridstep) ~= length(data.variables) || all(gridstep==0)
-    fprintf('Error: Please give step sizes for all variables. Use option ''step''.\n'); if nargout, avgdata = []; else clear avgdata; end; return; 
+    fprintf(2,'Error: Please give step sizes for all variables. Use option ''step''.\n'); if nargout, avgdata = []; else clear avgdata; end; return; 
 end
 
 if showdetails
@@ -798,7 +801,7 @@ end
 if ~isempty(readinput('xvar',varargin,'last'))
     plotvar = find(strcmpi(data.variables,readinput('xvar',varargin,'last')));
     if isempty(plotvar), 
-        fprintf('Error: The variable name provided in "xvar" is not found in the variable list.\n'); 
+        fprintf(2,'Error: The variable name provided in "xvar" is not found in the variable list.\n'); 
         if nargout, avgdata = []; else clear avgdata; end; return; 
     end        
 elseif isempty(plotvar)
@@ -822,7 +825,9 @@ if ~strcmpi(axhandle, 'none')
     
     % Assign linespecs to dplot structs
     for np=1:numplots
-        if ~isfield(dplot{np},'plotstyle'), dplot{np}.plotstyle = linespecs{np}; end
+%         if ~isfield(dplot{np},'plotstyle')
+            dplot{np}.plotstyle = linespecs{np}; 
+%         end
     end
     
     % Label x and y axes
@@ -892,44 +897,67 @@ end
 funcname = readinput('fit',varargin,'last');
 
 if ~isempty(funcname) 
-    % Do the fit for each dataset in dplot
+    % Do the fit - either for each dataset in dplot separately, or simultaneously for all
+    ind=0;
     for np = 1:numplots
         if isempty(dplot{np}), continue; end
-        if ~nooutput, fprintf('** Fitting dataset %d to function: ', np); end
-                    % *** !!
-        flcolor='r';
+        ind = ind+1;
+
+        flcolor{ind}='r';
         if isfield(dplot{np},'plotstyle')
-            if isfield(dplot{np}.plotstyle,'color'), flcolor = dplot{np}.plotstyle.color;
-            elseif any(dplot{np}.plotstyle(end)=='ymcrgbwk'), flcolor = dplot{np}.plotstyle(end); end
+            if isfield(dplot{np}.plotstyle,'color'), flcolor{ind} = dplot{np}.plotstyle.color;
+            elseif any(dplot{np}.plotstyle(end)=='ymcrgbwk'), flcolor{ind} = dplot{np}.plotstyle(end); end
         end
-                    
-        fitobj{np} = nfit('graphhandle',axhandle,varargin{:}, 'fitfunction',funcname, ...
-                'xdata', dplot{np}.coordlist(:,plotvar),'ydata',dplot{np}.valuelist(:,1),'yerror',dplot{np}.valuelist(:,2), ...
-                'linecolor', flcolor);
-%         fitobj{np}.plot;
         
-        % Fill fitresult output structre
-        nparam = numel(fitobj{np}.parameters.values);
-        fitresult.optparam(np,1:nparam) = fitobj{np}.parameters.values;
-        fitresult.errors(np,1:nparam) = fitobj{np}.parameters.errors;
-        fitresult.chi2(np) = fitobj{np}.optimization.chi2;
+        allxdata{ind} = dplot{np}.coordlist(:,plotvar);
+        allydata{ind} = dplot{np}.valuelist(:,1); 
+        allyerror{ind}= dplot{np}.valuelist(:,2); 
         
-        fitresult.fitvalues = fitobj{np}.fitfunction.call(fitobj{np}.parameters.values,dplot{np}.coordlist(:,plotvar));
+        if ~any(strcmpi(varargin,'globalfit'))   % individual fits
         
-        % plus some more, to make it more compatible with the (original) nfit objects   ** pass directly nfit object??
-        fitresult.parameters = fitobj{np}.parameters;
-        if isempty(fitobj{np}.fitline.x)
-            fitobj{np}.fitline.x = linspace(min(fitobj{np}.xdata),max(fitobj{np}.xdata),1000);                % x-values;
-            fitobj{np}.fitline.y = fitobj{np}.fitfunction.call(fitobj{np}.parameters.values, fitobj{np}.fitline.x); % y-values
+            if ~nooutput, fprintf('** Fitting dataset %d to function: ', np); end
+
+            fitobj{np} = nfit('graphhandle',axhandle,varargin{:}, 'fitfunction',funcname, ...
+                    'xdata', allxdata{ind}, 'ydata', allydata{ind}, 'yerror', allyerror{ind}, ...
+                    'linecolor', flcolor{ind});  % (this includes the plot)
+
+            % Fill fitresult output structre
+            nparam = numel(fitobj{np}.parameters.values);
+            fitresult.optparam(np,1:nparam) = fitobj{np}.parameters.values;
+            fitresult.errors(np,1:nparam) = fitobj{np}.parameters.errors;
+            fitresult.chi2(np) = fitobj{np}.optimization.chi2;
+
+            fitresult.fitvalues = fitobj{np}.fitfunction.call(fitobj{np}.parameters.values,dplot{np}.coordlist(:,plotvar));
+
+            % plus some more, to make it more similar to the (original) nfit objects   ** pass directly nfit object??
+            fitresult.parameters = fitobj{np}.parameters;
+            if isempty(fitobj{np}.fitline.x)
+                fitobj{np}.fitline.x = linspace(min(fitobj{np}.xdata),max(fitobj{np}.xdata),1000);                      % x-values;
+                fitobj{np}.fitline.y = fitobj{np}.fitfunction.call(fitobj{np}.parameters.values, fitobj{np}.fitline.x); % y-values
+            end
+            fitresult.fitline = fitobj{np}.fitline;
         end
-        fitresult.fitline = fitobj{np}.fitline;
         
     end   
+    
+    if any(strcmpi(varargin,'globalfit'))   % simultaneous fit
+        if ~nooutput, fprintf('** Fitting datasets (simultaneously) to function: '); end
+        fitobj{1} = nfit('graphhandle', axhandle, varargin{:}, 'fitfunction',funcname, ...
+                    'xdata', allxdata, 'ydata', allydata, 'yerror', allyerror, ...
+                    'linecolor', flcolor);  % (this includes the plot)
+        fitresult.optparam = fitobj{1}.parameters.values;
+        fitresult.errors = fitobj{1}.parameters.errors;
+        fitresult.chi2 = fitobj{1}.optimization.chi2;
+        
+        % ** evtl some more (s.o.)
+        
+    end
+    
     
     % Write parameters in the graph window
     if any(strcmpi(varargin,'showfit'))
         xl = xlim(gca); yl = ylim(gca);
-        text(xl(1),yl(2),fitobj{np}.optimization.paramoutput,'verticalalignment','top','fontname','courier','tag','fitresults');
+        text(xl(1),yl(2),fitobj{end}.optimization.paramoutput,'verticalalignment','top','fontname','courier','tag','fitresults');
     end
     
     % evtl. save nfit objects in figure's guidata

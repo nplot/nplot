@@ -45,9 +45,9 @@ figdata = guidata(gca);
 if ~isfield(figdata,'plotdataset'), figdata.plotdataset = {}; end
 dcount = length(figdata.plotdataset); 
 
-if ~isempty(pstyle) && ischar(pstyle) && any(pstyle=='|')
+if ~isempty(pstyle) && ischar(pstyle) && (any(pstyle=='|') || any(pstyle==','))
     % if pstyle given like 'style1|style2,..' convert this to cell array {'style1','style2',..}
-    pstyle = strsplit(pstyle,'|');
+    pstyle = strsplit(pstyle,{'|',','});
 end
 
 %Loop over datasets
