@@ -1,4 +1,4 @@
-function linespecs =  plot1d(list,varargin)
+function linespecs =  plot1d(list,varargin) 
 
 % function linespecs = plot1d(list,axdim,axhandle)
 % list:     Data in liststruct format, may be cell array

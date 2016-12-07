@@ -1,4 +1,4 @@
-function [avgdata,fitresult] = nplot(files, varargin)
+function [avgdata,fitresult] = nplot(files, varargin) 
 
 %
 % Syntax: [avgdata,fitresult] = nplot(files, varargin)
