@@ -1,4 +1,4 @@
-classdef nfit < handle 
+classdef nfit < handle
     
     % nfit class for data fitting
     %
