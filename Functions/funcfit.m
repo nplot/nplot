@@ -3,12 +3,15 @@ function [erg,optparam,dpa,paramoutput,outputmessage,chisqN] = funcfit(func, x, 
 % Syntax: [erg,optparam,dpa] = funcfit(func,x,y,err,startparam,varindex [,opt])
 %
 % Can handle N-dim. x's if function is adapted (f: N-dim --> 1D)
-% opt = 'nooutput' suppresses all screen output
 %
 % Can fit multiple data sets, if x,y,err are cell arrays (i.e. x{i},y{i},err{i} = i-th dataset)
 % In this case startparam can be length=m or simple array as for one dataset (->startparams equal for all)
 % "common" parameter in varargin contains indices of common params,
-% "constaint" can contain p2:3 for "p2 of data 3"
+% "constaint" can contain p2:3 for "p2 of data 3" (Recommended use for multiple datasets)
+%
+% options:
+%   'nooutput' suppresses all screen output
+%   'fullparamoutput' returns optparam and dpa in nd*np matrix containing all parameters (including common; for case of nd datasets)
 
 % P. Steffens, 10/2016
 
@@ -54,8 +57,9 @@ end
 % Sorting of parameters
 paramassign = repmat(1:paramnum,numdata,1);
 commonparams = readinput('common',varargin,'last');
+if ~isnumeric(commonparams), fprintf(2,'Error in ''funcfit.m'': Value for ''common'' parameter is not numeric.\n'); return; end
 paramassign(2:end,setdiff(1:paramnum,commonparams))=paramnum + reshape(1:(numdata-1)*(paramnum-numel(commonparams)), paramnum-numel(commonparams), numdata-1)';
-% this means paramassing(n,m) = index of m-th parameter for n-th data set
+% this means paramassign(n,m) = index of m-th parameter for n-th data set
 allparamnum = max(paramassign(:));
 
 
@@ -70,11 +74,16 @@ elseif numel(startparam)<=paramnum
     for i=1:numdata
         sp(paramassign(i,1:numel(startparam))) = startparam(:)';
     end
+elseif numel(startparam) == paramnum*numdata
+    startparam = reshape(startparam',paramnum,numdata)';
+    equal = true; for i=commonparams(:)', equal = equal && (numel(unique(startparam(:,i)))==1); end
+    if ~equal, fprintf('Warning: non-equal start values for common parameters. (On call to ''funcfit.m'')\n'); end
+    sp(paramassign) = startparam;
 else
     if numel(startparam)>allparamnum, warning('Too many start values for fitting. Array must not have more entries than free parameters.'); end
     sp = startparam(:)'; sp = sp(1:allparamnum);
 end
-if any(isnan(sp)), warning('Start values have not been set for all fit parameters. (Zeros used.)'); end
+if any(isnan(sp)), warning('Start values have not been set for all fit parameters. (Zeros will be used.)'); end
 sp(isnan(sp)) = 0;
 startparam = sp;
 
@@ -177,6 +186,7 @@ freeparam = startparam(vi);
             if datadim==1, xx=x(ind,:); else xx=x(:,ind); end
             f(ind) = func(param(paramassign(ii,:)),xx);
         end
+        if datadim==1, f=f'; end
     end
 
 %% Do Fit
@@ -249,11 +259,20 @@ for d=1:numdata
                 if o, fprintf('  (constrained)'); end
                 paramoutput{outline} = [paramoutput{outline}, ' (constrained) ']; 
             end
-        end          
+        end  
+        if ismember(i,commonparams)
+            if o, fprintf(' (common)'); end
+            paramoutput{outline} = [paramoutput{outline}, ' (common)'];
+        end
         if o, fprintf('\n'); end
     end
 end
 if any(strcmpi(varargin,'printchi2')),  fprintf('Chi2 = %10.5g \n', chisqN); end %in case of only chi2 output
 
+% parameter in matrix form if desired
+if any(strcmpi(varargin,'fullparamoutput'))
+    optparam = optparam(paramassign);
+    dpa = dpa(paramassign);
+end
 
 end  % funcfit
