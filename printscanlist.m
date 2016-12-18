@@ -103,17 +103,19 @@ for i=1:length(filelist)
         
         val = getvar(scan,thisvar,'includeparam');
         if isempty(val), continue; end
-        if findstr(vars{v},'~mean') 
-            val = mean(val); 
-        else
-            %val = round(val*100./max(max(val),1))/100.*max(max(val),1); % round a little bit
-            val = round(val/prec)*prec;
-            val = unique(val);
-        end
-        if numel(val)>1
-            val = '***';
-        else
-            val = num2str(val);
+        if ~ischar(val)
+            if findstr(vars{v},'~mean') 
+                val = mean(val); 
+            else
+                %val = round(val*100./max(max(val),1))/100.*max(max(val),1); % round a little bit
+                val = round(val/prec)*prec;
+                val = unique(val);
+            end
+            if numel(val)>1
+                val = '***';
+            else
+                val = num2str(val);
+            end
         end
         fprintf(fid,' %7s',val);
         slist(i).(thisvar)=val;
