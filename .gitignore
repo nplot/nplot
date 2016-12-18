@@ -1,0 +1,4 @@
+# do not commit autosave files 
+# Matlab uses .asc on Windows and .m~ on Linux systems
+.asc
+.m~
