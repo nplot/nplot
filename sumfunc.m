@@ -1,14 +1,11 @@
 function [val paramnames paramnum description]=sumfunc(param,x,varargin)
-
-%Hilfsfunktion für Summenbildung; wird nicht direkt aufgerufen 
-%("fsum" benutzen!)
-
+% SUMFUNC is an internal helper function. Users should use "fsum" instead.
 
 paramnum=0;
 description='(';
 
 
-%Beschreibung der Funktion und Parameter
+% Description of function and parameters
 for c=1:(nargin-2)
     if c>1, description = [description ' + ']; end
     func = varargin{c};
@@ -24,7 +21,7 @@ description = [description ')'];
 if isempty(param), val=[]; return; end
 
 %-------------------------------------------------------
-% Ab hier Definition der Funktion
+% Definition below
 %-------------------------------------------------------
 
 val=0;
@@ -33,4 +30,5 @@ for c = 1:(nargin-2)
     func = varargin{c};
     val = val + func(param(p+1:p+pnum(c)),x);
     p = p + pnum(c);
+end
 end
