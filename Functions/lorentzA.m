@@ -20,3 +20,4 @@ FWHM  = param(3);
 
 val = Amplitude * FWHM^2 * 1./(4*(x-xc).^2+FWHM^2);
 val = reshape(val,size(x));
+end

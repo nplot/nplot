@@ -19,3 +19,4 @@ FWHM      = param(3);
 
 
 val = Amplitude * exp(-4*log(2)*(x-xc).^2 / FWHM^2);
+end

@@ -19,3 +19,4 @@ FWHM      = param(3);
 eta       = param(4);
 
 val = Amplitude * ( eta * lorentzA([xc,1,FWHM],x) + (1-eta) * gaussA([xc,1,FWHM],x) );
+end
