@@ -13,9 +13,9 @@ if isempty(param) || ((nargin>2) && (strcmpi(opt,'INFO'))),  val=[]; return; end
 % function definition
 %-------------------------------------------------------
 
-xc    = param(1);
-inten = param(2);
-fwhm  = param(3);
+xc        = param(1);
+Amplitude = param(2);
+FWHM      = param(3);
 
 
-val = inten * exp(-4*log(2)*(x-xc).^2 / fwhm^2);
+val = Amplitude * exp(-4*log(2)*(x-xc).^2 / FWHM^2);
