@@ -1,14 +1,11 @@
 function [val paramnames paramnum description]=prodfunc(param,x,varargin)
-
-%Hilfsfunktion für Produktbildung; wird nicht direkt aufgerufen 
-%("fmult" benutzen!)
-
+% PRODFUNC is a helper function do not use it as user. Use "fmult" instead.
 
 paramnum=0;
 description='(';
 
 
-%Beschreibung der Funktion und Parameter
+% description of function and parameter
 for c=1:(nargin-2)
     if c>1, description = [description ' * ']; end
     func = varargin{c};
@@ -24,7 +21,7 @@ description = [description ')'];
 if isempty(param), val=[]; return; end
 
 %-------------------------------------------------------
-% Ab hier Definition der Funktion
+% Definition below
 %-------------------------------------------------------
 
 val=1;
@@ -34,3 +31,4 @@ for c = 1:(nargin-2)
     val = val .* func(param(p+1:p+pnum(c)),x);
     p = p + pnum(c);
 end
+end 
