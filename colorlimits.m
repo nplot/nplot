@@ -1,9 +1,9 @@
 function colorlimits(figh)
-
-% colorlimits(figh)
-% Simple dialog window to set the limits of the colorscale
-% figh is handle to the figure
-
+% COLORLIMITS opens a simple dialog window to set the limits of the colorscale
+% Syntax:
+%     colorlimits(figh)
+%     figh is the handle to the figure
+%
 % P. Steffens 08/2009 - 08/2014
 
 
