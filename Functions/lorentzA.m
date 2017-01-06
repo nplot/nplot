@@ -11,12 +11,13 @@ paramnames = {'x0', 'Amplitude', 'Fwhm'}; paramnum=3;
 if isempty(param),  val=[]; return; end
 
 %-------------------------------------------------------
-% Ab hier Definition der Funktion
+% Definition below
 %-------------------------------------------------------
 
 xc    = param(1);
-inten = param(2);
-fwhm  = param(3);
+Amplitude = param(2);
+FWHM  = param(3);
 
-val = inten * fwhm^2 * 1./(4*(x-xc).^2+fwhm^2);
+val = Amplitude * FWHM^2 * 1./(4*(x-xc).^2+FWHM^2);
 val = reshape(val,size(x));
+end

@@ -7,7 +7,7 @@ function [erg,optparam,dpa,paramoutput,outputmessage,chisqN] = funcfit(func, x, 
 % Can fit multiple data sets, if x,y,err are cell arrays (i.e. x{i},y{i},err{i} = i-th dataset)
 % In this case startparam can be length=m or simple array as for one dataset (->startparams equal for all)
 % "common" parameter in varargin contains indices of common params,
-% "constaint" can contain p2:3 for "p2 of data 3" (Recommended use for multiple datasets)
+% "constraint" can contain p2:3 for "p2 of data 3" (Recommended use for multiple datasets)
 %
 % options:
 %   'nooutput' suppresses all screen output
