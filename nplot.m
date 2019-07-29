@@ -61,7 +61,7 @@ function [avgdata,fitresult] = nplot(files, varargin)
 %   avgdata     : list of binned and averaged data
 %   fitresult   : If a fit has been performed, the resulting fit parameters
 
-% P. Steffens, 11/2016
+% P. Steffens, 07/2019
 
 
 
@@ -79,7 +79,7 @@ warningstring =[];
 
 % Restore parameters from previous call of nplot if necessary, and store new ones
 persistent lastnplotparams
-if any(strcmpi(varargin,'..')) && ~isempty(lastnplotparams), 
+if any(strcmpi(varargin,'..')) && ~isempty(lastnplotparams) 
     lastparamind = find(strcmpi(varargin,'..')); lastparamind = lastparamind(end);
     for j = (length(varargin):-1:(lastparamind+1)), varargin{length(lastnplotparams) + j-1} = varargin{j}; end
     for j = 1:length(lastnplotparams), varargin{lastparamind + j -1} = lastnplotparams{j}; end
@@ -90,7 +90,7 @@ lastnplotparams = varargin;
 % Check for '*' in input string
 % (to override params of previous calls without warning)
 notwarnmultiple = find(strncmp('*',varargin,1));
-for j=notwarnmultiple, if j>1 && isempty(strfind(lower(varargin{j-1}),'plotstyle')), varargin{j} = varargin{j}(2:end); end; end
+for j=notwarnmultiple, if j>1 && isempty(strfind(lower(varargin{j-1}),'plotstyle')), varargin{j} = varargin{j}(2:end); end; end %#ok<STREMP>
 
 
 % Replace some old option names by new ones
@@ -110,7 +110,7 @@ end
 
 % Test if varagin can be interpreted
 [message,~,multipleopt] = checkoptions(varargin, knownoptions, knownswitches,notwarnmultiple);
-if ~isempty(message), fprintf(['Warning(s):\n', message]); end
+if ~isempty(message), warning(message); end
 if ~isempty(multipleopt), fprintf('If you give multiple values for the same options, the last occurence is used.\n(Use * in front of option name to suppress this warning.)\n'); end
 if any(strcmpi(varargin,'common')) && ~any(strcmpi(varargin,'globalfit')), fprintf('Common-option only used for simultaneous fitting (switch ''globalfit'').\n'); end
 
@@ -296,6 +296,7 @@ end
 %% Initialize output
 
 global plotresult
+global nplotfitresult
 
 data.paldeflist = {};
 data.polarized = false;
@@ -390,7 +391,7 @@ for scannr = 1:length(scans)
                 for ii = (length(data.paldeflist)+1):max(scan.DATA.PAL), data.paldeflist{ii}.PAL = ii; end
             end
         else
-            fprintf('Warning: Inconsistent file format in %s. Found POLAN, but no PAL''s. Treat as unpolarized (please check).\n',scan.FILE);
+            warning('Inconsistent file format in %s. Found POLAN, but no PAL''s. Treat as unpolarized (please check).',scan.FILE);
         end
     end
     
@@ -448,7 +449,7 @@ for scannr = 1:length(scans)
     
 end %Scan loop
 
-if ~isempty(warningstring), fprintf('%s\n',warningstring); warningstring =[]; end %#ok<NASGU>
+if ~isempty(warningstring), warning(warningstring); warningstring =[]; end %#ok<NASGU>
 
 if showdetails
     fprintf('Input data is ');
@@ -626,7 +627,7 @@ lambdai = lambdai(inrange&good); %(use the lambdai below)
 % (does not concern normalization on time
 if ~strcmpi(moncolumn,'TIME')
     if any(data.monitorlist < data.valuelist(:,1)./data.valuelist(:,2) * 5) && ~nooutput
-        fprintf('Warning: Normalization on low monitor values! Normalization on TIME may be more accurate. (Use option "time".)\n');
+        warning('Normalization on low monitor values! Normalization on TIME may be more accurate. (Use option "time".)');
     end
 end
 
@@ -675,7 +676,7 @@ else
 end
 
 if isempty(avgdata)
-    fprintf('Warning: combination of data not successful (cmbavg) ! Go on...\n');
+    warning('combination of data not successful (cmbavg) ! Go on...');
     avgdata = data;
 end
 
@@ -791,7 +792,7 @@ if ~isempty(posqestring), stdlegtext = [files, '; ', posqestring]; end
 % assign legtext and pstyle to dplot structs
 for np=1:numplots
    if ~isempty(pstyle),  if iscell(pstyle),  dplot{np}.plotstyle = pstyle{mod(np-1, length(pstyle)) +1}; else dplot{np}.plotstyle=pstyle; end;    end
-   if ~isempty(legtext), if iscell(legtext), dplot{np}.legend   = legtext{mod(np-1, length(legtext))+1}; else dplot{np}.legend=legtext;   end; 
+   if ~isempty(legtext), if iscell(legtext), dplot{np}.legend   = legtext{mod(np-1, length(legtext))+1}; else dplot{np}.legend=legtext;   end 
    elseif (~isfield(dplot{np},'legend') || isempty(dplot{np}.legend)) && ~any(strcmpi(varargin,'nolegend'))
        dplot{np}.legend  = stdlegtext; % use standard text if no other provided 
    end
@@ -800,7 +801,7 @@ end
     
 if ~isempty(readinput('xvar',varargin,'last'))
     plotvar = find(strcmpi(data.variables,readinput('xvar',varargin,'last')));
-    if isempty(plotvar), 
+    if isempty(plotvar) 
         fprintf(2,'Error: The variable name provided in "xvar" is not found in the variable list.\n'); 
         if nargout, avgdata = []; else clear avgdata; end; return; 
     end        
@@ -835,7 +836,7 @@ if ~strcmpi(axhandle, 'none')
     if ~isempty(xtransform), xlabeltext = strrep(xtransform,'X',data.variables{plotvar}); end
     oldxlabel = get(get(gca,'xlabel'),'string'); % Check if axis already labelled (e.g. from prev. plot)
     if ~isempty(oldxlabel) && ~strcmpi(oldxlabel, xlabeltext) && ~nooutput
-        fprintf('Warning: The x-axis label is being changed. Check for consistency.\n');
+        warning('The x-axis label is being changed. Check for consistency.');
     end
     xlabel(xlabeltext);
     
@@ -854,7 +855,7 @@ if ~strcmpi(axhandle, 'none')
         end 
     end
     if ~isempty(oldylabel) && ~strcmpi(oldylabel, ylabeltext) && ~nooutput
-        fprintf('Warning: The y-axis label is being changed. Check for consistency (e.g. normalization etc.)\n');
+        warning('The y-axis label is being changed. Check for consistency (e.g. normalization etc.)');
     end
     ylabel(ylabeltext);
     
@@ -920,8 +921,15 @@ if ~isempty(funcname)
             fitobj{np} = nfit('graphhandle',axhandle,varargin{:}, 'fitfunction',funcname, ...
                     'xdata', allxdata{ind}, 'ydata', allydata{ind}, 'yerror', allyerror{ind}, ...
                     'linecolor', flcolor{ind});  % (this includes the plot)
-
-            % Fill fitresult output structre
+                
+                
+            if isempty(fitobj{np}.optimization)
+               warning('No fit performed.');
+               continue;
+            end
+            
+            % Fill fitresult output structure
+            
             nparam = numel(fitobj{np}.parameters.values);
             fitresult.optparam(np,1:nparam) = fitobj{np}.parameters.values;
             fitresult.errors(np,1:nparam) = fitobj{np}.parameters.errors;
@@ -970,5 +978,6 @@ end
 
 %%  
 plotresult = avgdata;  % Store result in global variable "plotresult", which has to be declared in Matlab-workspace before ('global plotresult')
+nplotfitresult = fitresult; % Same for fitresult
 if nargout==0,  clear avgdata; end
 

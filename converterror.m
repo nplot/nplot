@@ -1,18 +1,17 @@
 function errstr = converterror(value,err,opt,prec)
+
+% errstr = converterror(value,err,opt,prec)
+%
 % CONVERTERROR formats value and error into a single string
-% prec for additional precision (e.g. prec = 2 for the two first
-% significant digits), default: 1
+% opt:  "pm" for \pm, "textpm" for +/-, otherwise ()
+% prec: precision (e.g. prec = 2 for the two first significant digits), default: 1
 %
-% Usage: 
-%   sprintf('%s',converterror(12.123456,0.004321,'pm',3))
+% Example: 
+%   converterror(12.123456,0.004321,'pm',3)
 %    12.12346 \pm 0.00432
-%
-%   sprintf('%s',converterror(12.123456,0.004321,'textpm',3))
-%    12.12346 +/- 0.00432
-%
-%   sprintf('%s',converterror(12.123456,0.004321,'()',3))
-%    12.1235(432)
-%
+%   converterror(12.123456,0.004321)
+%    12.123(4)
+
 % P. Steffens, 09/2012
 % J. Stein, 01/2017
 

@@ -28,7 +28,7 @@ vanacorr = 2;   % 0: none,
 vanafile = ...  % Filename with vanadium scan
     '062712';
 det_eff = ...   % give 31 numbers describing the efficiency of the detector channels
- [1.015,1.1048,0.9938,0.828,1.0554,1.0807,0.95,0.9925,0.9839,0.9408,1.0116,0.9279,0.9593,0.8332,1.0111,0.9753,0.9335,1.0275,0.9984,1.0494,1.0006,1.057,0.9973,1.0213,0.9953,1.026,1.0255,1.0135,1.0124,1.0968,1.082];
+ [1.015,1.1048,0.9938,0.828,10.0554,1.0807,0.95,0.9925,0.9839,0.9408,1.0116,0.9279,0.9593,0.8332,1.0111,0.9753,0.9335,1.0275,0.9984,1.0494,1.0006,1.057,0.9973,1.0213,0.9953,1.026,1.0255,1.0135,1.0124,1.0968,1.082];
 
 
 
@@ -89,7 +89,7 @@ maxdeviate.c = .05;
 % overcome insignificant deviations in their coordinate values. This
 % defines the "resolution".)
 stdgrid.ANGLES = [0.1, 0.1];             % a4'/psi
-stdgrid.A4ENERGY = [0.1, .25];          % a4'/en
+stdgrid.A4ENERGY = [0.1, .01];          % a4'/en
 stdgrid.ANGLESENERGY = [0.1, .25, .1];   %a4'/en/psi
 stdgrid.ANGLESQZ = [stdgrid.ANGLES, .02]; %a4'/psi/Qvert
 stdgrid.QXY = [0.01, 0.01];             % Qx/Qy
@@ -98,7 +98,7 @@ stdgrid.QXYZ = [stdgrid.QXY, .02];      % Qx/Qy/Qz
 stdgrid.LINEARQ = [0.002,0.05];               % Q/en
 stdgrid.HKLET = [.005,.005,.01,.01,.005];
 stdgrid.SCANSTEP = [.1,.1];
-stdgrid.GENERAL = .5;
+stdgrid.GENERAL = [.04,.04];
 
 % Maximum distances for binning
 % (often not used because grid fine enough)
@@ -132,8 +132,8 @@ stdratio.GENERAL = [1,1];
 % Maximum cell sizes along the coordinate axes when setting up the coloured patch for plotting 
 % (Using high values fills "unesthetic" gaps, but this may be physically misleading or produce
 %  artifacts at the edges)
-stdcell.ANGLES = [2.5,2.5];       % a4'/psi
-stdcell.A4ENERGY = [2.5,1];      % a4'/en
+stdcell.ANGLES = [3,3];       % a4'/psi
+stdcell.A4ENERGY = [2.5,.06];      % a4'/en
 stdcell.ANGLESENERGY = [stdcell.A4ENERGY, stdcell.ANGLES(2)];
 stdcell.ANGLESQZ = [stdcell.ANGLES, .3];
 stdcell.QXY = [.16, .16];  stdcell.QPLANE = stdcell.QXY;
@@ -142,7 +142,7 @@ stdcell.QXYZ = [stdcell.QXY, .3];
 stdcell.LINEARQ = [.13, .7];
 stdcell.QEPLANE = [.1,1];
 stdcell.SCANSTEP = [1.05,1.05];
-stdcell.GENERAL = [1,1];
+stdcell.GENERAL = [.1,.5];
 stdcell.HKLVECTORS = [.5,.5];
 
 % ---------------------------

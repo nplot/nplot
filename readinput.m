@@ -8,7 +8,7 @@ function [val,rest] = readinput(name, arglist, varargin)
 % If vargargin = 'first' or 'last', return only first or last occurrence.
 % rest is the part of arglist which does not contain 'name'.
 
-% P. Steffens, 11/2016
+% P. Steffens, 05/2018
 
 val = [];
 rest = [];
@@ -53,7 +53,7 @@ for p=1:numel(vi)    % Allow for multiple occurences
     if ischar(valnew) % try to convert to numeric
         valnew=strtrim(valnew);
         valn = str2num(arglist{vi(p)+1}); %#ok<ST2NM> 
-        if ~isempty(valn) && (isnumeric(valn) || isobject(valn)) && ~isa(valn,'function_handle'), valnew=valn; end
+        if ~isempty(valn) && (isnumeric(valn) || isobject(valn)) && ~isa(valn,'function_handle') && ~isa(valn,'iFunc'), valnew=valn; end
     end
     if ischar(valnew) && valnew(1)=='{' && valnew(end)=='}'
         % try to convert to cell array

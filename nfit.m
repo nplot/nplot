@@ -96,7 +96,7 @@ classdef nfit < handle
                 switch lower(varargin{1})
                     case '*'        % open interactive window on existing object
                         if length(varargin)==1, nfitgui(nfitobjmemory);
-                        else fprintf('Use ''nfit *'' without further parameters.\n'); end
+                        else fprintf('Use ''nfit *'' without further parameters.\n'); end %#ok<*SEPEX>
                     case 'fitfunction'          % ** initialize function def
                     case 'background'           % ** inizialize background def                    
                     case 'set'              % set one or several param values (call setparam)
@@ -233,7 +233,7 @@ classdef nfit < handle
                 % Initialize start parameters
                 startval = readinput('startval',varargin,'last');
                 if ~isempty(startval)
-                    if numel(startval) == numdata*size(hobj.parameters.values,2);
+                    if numel(startval) == numdata*size(hobj.parameters.values,2)
                         hobj.parameters.values = reshape(startval',size(hobj.parameters.values,2),numdata)';
                     elseif numel(startval) >= size(hobj.parameters.values,2)
                         hobj.parameters.values = startval(1:size(hobj.parameters.values,2));
@@ -286,8 +286,11 @@ classdef nfit < handle
             % varargin can contain a tag, e.g. 'as background', ...
             [func, msg, paramnames, paramnum, description] = makefunction(func);
             if isempty(func)
-                if ~isempty(msg), fprintf('%s\n',msg); end
-                return;
+                if ~isempty(strfind(msg,'Error'))
+                    warning(msg); return;
+                elseif ~isempty(msg) 
+                    fprintf('%s\n',msg); 
+                end
             end
             if iscell(hobj.xdata), datalines=1:length(hobj.xdata); else datalines=1; end
             ind = size(hobj.parameters.values,2) + (1:paramnum);
@@ -507,7 +510,7 @@ classdef nfit < handle
                 end
                     % ** Make a plot of more individual components ... (according "tag")
                 % set attributes for all elements
-                for iel=1:length(hobj.graphelements), 
+                for iel=1:length(hobj.graphelements)
                     for fn=fieldnames(hobj.graphelements{iel}.plotstyle)'
                         set(hobj.graphelements{iel}.handle, fn{1}, hobj.graphelements{iel}.plotstyle.(fn{1})); 
                     end

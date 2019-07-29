@@ -8,6 +8,7 @@ function linespecs =  plot1d(list,varargin)
 %           (can be array to use multiple when list is cell array)
 % 'offset', yoff:       Offset on y-axis
 % 'plotstyle', pstyle:  (default) plotstyle string. (Overrides .plotstyle field in list) 
+%                       (can be string like 'or|ob|fg' etc.)
 % Returns:
 % linespecs: Cell array of plotstyles
 
@@ -15,7 +16,7 @@ function linespecs =  plot1d(list,varargin)
 %   .x, .y, .dy, .axhandle, .plothandle, (.mlist), (.tlist), (.legendtext)
 % - updates the data cursor display of the figure window appropriately
 
-% P. Steffens, 06/2016
+% P. Steffens, 05/2018
 
 
 if ~iscell(list), m = list; clear list; list{1}=m;  clear m; end % ensure cell array
@@ -57,7 +58,10 @@ for num = 1:length(list)
     if multipleaxes, set(gcf,'currentaxes',axhandle(num)); hold on; box on; end % set axis, if necessary
    
     % set plotstyle
-    if ~isempty(pstyle), list{num}.plotstyle=pstyle; end
+    if ~isempty(pstyle) 
+        if iscell(pstyle), list{num}.plotstyle = pstyle{min([num,length(pstyle)])};
+        else list{num}.plotstyle=pstyle; end
+    end
     % use custom plotstyle if string. (Can also be struct, see below)
     if isfield(list{num},'plotstyle') && ischar(list{num}.plotstyle), linespec = list{num}.plotstyle; 
     else linespec = plottype{mod(num-1+dcount,length(plottype))+1}; % default
