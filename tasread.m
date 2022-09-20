@@ -16,7 +16,7 @@ function [scans, nscans, nodata]=tasread(filenames, varargin)
 % analysis, Flatcone, etc.) is thus to be done by calling routines.
 
 
-% P. Steffens 07/12 - 10/2014
+% P. Steffens 07/12 - 09/2019
 
 
 
@@ -80,7 +80,11 @@ for j=1:nscans
                 data = reshape(data, length(scanfile.DATA.columnames), [])';
             case 'MULTI:'
                 multi = sscanf(filecontent(endline(nl+1)+1:flen)','%d'); % read whole block (until non-number appears)
-                scanfile.MULTI = reshape(multi, 31, [])';
+                try 
+                    scanfile.MULTI = reshape(multi, [], size(data,1))';
+                catch
+                    scanfile.MULTI = multi;
+                end
             case 'POLAN:'
                 cpol = cpol+1;
                 scanfile.POLAN{cpol} = strtrim(fline(7:end)); %char(regexpmatch(fline,'(?<=:\s+)\S+.+'));

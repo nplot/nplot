@@ -56,7 +56,7 @@ classdef nfit < handle
     %
     % Type 'fitfunctions' for a list of available functions.
     
-    % P. Steffens, 2/2015
+    % P. Steffens, 1/2022
     
     properties
         xdata = [];     % Data x-values (n-dim.)
@@ -478,10 +478,10 @@ classdef nfit < handle
             % Delete evtl. old lines
             for ii=1:length(hobj.fitline), if ishandle(hobj.fitline{ii}.handle), delete(hobj.fitline{ii}.handle); hobj.fitline{ii}.handle = []; end; end
             % Plot result function
-            if ishandle(hobj.graphhandle)
-                for ndat = 1:length(xdat)
-                    hobj.fitline{ndat}.x = linspace(min(xdat{ndat}),max(xdat{ndat}),1000);                % x-values;
-                    hobj.fitline{ndat}.y = hobj.fitfunction.call(hobj.parameters.values(ndat,:), hobj.fitline{ndat}.x); % y-values
+            for ndat = 1:length(xdat)
+                hobj.fitline{ndat}.x = linspace(min(xdat{ndat}),max(xdat{ndat}),1000);                % x-values;
+                hobj.fitline{ndat}.y = hobj.fitfunction.call(hobj.parameters.values(ndat,:), hobj.fitline{ndat}.x); % y-values
+                if ishandle(hobj.graphhandle)
                     hold(hobj.graphhandle,'on');
                     % plot line
                     hobj.fitline{ndat}.handle = plot(hobj.graphhandle, hobj.fitline{ndat}.x, hobj.fitline{ndat}.y, 'tag', 'fitline');

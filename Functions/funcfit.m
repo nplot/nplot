@@ -13,7 +13,7 @@ function [erg,optparam,dpa,paramoutput,outputmessage,chisqN] = funcfit(func, x, 
 %   'nooutput' suppresses all screen output
 %   'fullparamoutput' returns optparam and dpa in nd*np matrix containing all parameters (including common; for case of nd datasets)
 
-% P. Steffens, 10/2016
+% P. Steffens, 07/2019
 
 
 erg=[]; optparam=[]; dpa=[]; paramoutput=[]; outputmessage=[]; chisqN=[];
@@ -44,7 +44,7 @@ else
     allx=x; ally=y; allerr=err; datalength=numel(y);
 end
 % Check lengths of each
-if size(allx,datadim)~= size(ally,datadim) || size(ally,datadim)~=size(allerr,datadim), fprintf(2,'Error: inconsistent sizes of x,y,err data on call to ''funcfit.m''\n'); return; end;
+if size(allx,datadim)~= size(ally,datadim) || size(ally,datadim)~=size(allerr,datadim), fprintf(2,'Error: inconsistent sizes of x,y,err data on call to ''funcfit.m''\n'); return; end
 
 
 % Test call to function
@@ -67,7 +67,7 @@ allparamnum = max(paramassign(:));
 sp = nan(1,allparamnum);
 if iscell(startparam)
     for i=1:length(startparam)
-        if numel(startparam{i}) > paramnum, warning(['Too many start values for fit of dataset ',num2str(i)]); readlen=paramnum; else readlen = numel(startparam{i}); end
+        if numel(startparam{i}) > paramnum, warning(['Too many start values for fit of dataset ',num2str(i)]); readlen=paramnum; else readlen = numel(startparam{i}); end %#ok<SEPEX>
         sp( paramassign(i,1:readlen)) = startparam{i}(:)';
     end
 elseif numel(startparam)<=paramnum
@@ -122,7 +122,7 @@ if ~isempty(constring)
     [A, b] = constraintmatrix(constring);  % Obtain matrix form of contraint equations
     if isempty(A), fprintf('** Stop fitting due to problem with constraint string. \n'); return; end
     if rank(A) < rank([A,b]), fprintf('** Constraints cannot be fulfilled simultaneously! Stop fitting. \n'); return; end
-    if size(A,2) > allparamnum, fprintf('** Constraint string contains inexistent parameters! Stop fitting. \n'); return; end;
+    if size(A,2) > allparamnum, fprintf('** Constraint string contains inexistent parameters! Stop fitting. \n'); return; end
 end
 
 A(:,end+1:allparamnum) = 0;
@@ -183,8 +183,8 @@ freeparam = startparam(vi);
     function f=funceval(func,param,x)
         for ii=1:numdata
             ind = sum(datalength(1:(ii-1))) + (1:datalength(ii));
-            if datadim==1, xx=x(ind,:); else xx=x(:,ind); end
-            f(ind) = func(param(paramassign(ii,:)),xx);
+            if datadim==1, xxx=x(ind,:); else xxx=x(:,ind); end %#ok<SEPEX>
+            f(ind) = func(param(paramassign(ii,:)),xxx);
         end
         if datadim==1, f=f'; end
     end
@@ -195,7 +195,7 @@ freeparam = startparam(vi);
 startparam(vi) = optfreeparam;
 optparam = fulfillconstraints(startparam);
 
-if exitflag~=1, outputmessage='Convergence NOT reached! '; else outputmessage = []; end
+if exitflag~=1, outputmessage='Convergence NOT reached! '; else outputmessage = []; end %#ok<SEPEX>
     
 
 %% Calculate Errors

@@ -24,7 +24,7 @@ function avg = plotmultiple(scanlist,varargin)
 %                           'qxqyqz' - Qx,Qy,Qz axes (3d)
 % An automatic guess for appropriate coordinates and plottype is performed.
 % Allowed codewords include most variables from the options.m file, which
-% can thus be replaced from the command line.
+% can thus be overwritten from the command line.
 % Switches for gonio behaviour:
 %             '2dmode' : for data using Mad's 2d-mode (gonios not zeroed)
 %             'nogoniomode': completely ignore gonios - i.e. they're assumed flat or not installed 
@@ -37,7 +37,7 @@ function avg = plotmultiple(scanlist,varargin)
 % plotmultiple 012345 normalizeto M1 normval 1000 vanacorr 2 det_eff [1,1,.99,1.01,1, ...]
 
 
-% P. Steffens 11/2016
+% P. Steffens 09/2020
 
 
 avg = [];
@@ -64,7 +64,9 @@ if isempty(listtype) && isempty(plottype)
     if any(strcmpi(varargin,'a4energy')),   listtype = 'A4Energy'; plottype = 'qeplane'; end
     if any(strcmpi(varargin,'qxy')),        listtype = 'Qxy';      plottype = 'Qxy'; end
 
-    if any(strcmpi(varargin,'linearq')),    listtype = 'linearq';   plottype = 'qeplane'; end
+    if any(strcmpi(varargin,'linearq')),    listtype = 'linearq';  plottype = 'qeplane'; end
+    
+    if any(strcmpi(varargin,'marmot')),     listtype = 'CHEI';     plottype = 'CHEI'; end
 
     % 3D plots
     if any(strcmpi(varargin,'energy3d')),     listtype = 'AnglesEnergy'; plottype = 'qxqyen'; end

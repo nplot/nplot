@@ -1,4 +1,4 @@
-function [val paramnames paramnum description] = template(param,x,opt)
+function [val paramnames paramnum description] = quadratic(param,x,opt)
 
 % Template for creation of new function
 
@@ -8,8 +8,8 @@ function [val paramnames paramnum description] = template(param,x,opt)
 % Enter function name and description, f(x) = ...
 % Parameters: A, lambda, x0
 
-description = '2 Gauss on sloping BG';
-paramnames = {'Bgr_Y', 'Bgr_G', 'x0_1', 'Int._1', 'Fwhm_1', 'x0_2', 'Int._2', 'Fwhm_2'}; paramnum = length(paramnames);
+description = 'a*(x-x0)^2+y0';
+paramnames = {'x0','a','y0'}; paramnum = length(paramnames);
 
 if isempty(param),  val=[]; return; end
 
@@ -17,4 +17,8 @@ if isempty(param),  val=[]; return; end
 % Function definition
 %-------------------------------------------------------
 
-val = 0; % Enter formula
+x0 = param(1);
+a  = param(2);
+b  = param(3);
+
+val = a*(x-x0).^2 + b; % Enter formula

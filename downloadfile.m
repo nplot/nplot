@@ -40,6 +40,10 @@ end
 % if no scp installed.
 [re,ou] = system(['scp ' username '@' server ':"' filestr '" .']);
 
+% in case of error "Filename does not match request": see for ex. https://www.nas.nasa.gov/hecc/support/kb/troubleshooting-scp-file-transfer-failure-with-protocol-error_577.html
+% Solution: switch to sftp, or do "scp -T ..."
+
+
 if strfind(ou,'denied')
     fprintf('Access denied. Retry in new console window (enter password). Exit console manually.\nAvoid this complication by generating a key pair. Type help downloadfile for help.\n');
     [re,ou] = system(['scp ' username '@' server ':"' filestr '" . &']);  %retry same in new window (to allow for password typing). Note: in this case, [re,ou] always [0,''] ...

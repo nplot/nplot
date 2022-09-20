@@ -20,13 +20,15 @@ function erg = getvar(scan,varname,varargin)
 % ** make IMPS-compatible!!!! **
 % ** find a solution for (future) case of several kf per channel!! **
 %
-% P. Steffens, 04/2013 - 10/2014
+% P. Steffens, 04/2013 - 01/2021
 
 
 
 
 
 varname = upper(varname);
+
+a3=[]; gu=[]; gl=[]; a3p=[]; a4=[]; gfc=[];
 
 %If the field already exists:  nothing to do, be happy and exit 
 if fieldcheck(scan.DATA,varname)

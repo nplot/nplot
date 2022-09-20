@@ -1,8 +1,10 @@
-function slist = printscanlist(filenames,varargin)
+function [slist,scantable] = printscanlist(filenames,varargin)
 
 % Print MAD scan info
 % Filenames can be entered in Multifilename-Format
-% 'printscanlist all' lists all data files in directory
+% 'printscanlist all' lists all data files in directory.
+% Can also use 'printscanlist 012345:end'
+%
 % possible options:   
 %       outfile [filename]      if given, write in text file on disk, otherwise on screen
 %       var [varname]           prints values of variable (you can give this option several times).
@@ -20,6 +22,7 @@ if nargin<1
     help printscanlist
     return;
 end
+toend = false;
 
 if strcmpi(filenames,'all')
     files=dir;
@@ -34,9 +37,22 @@ if strcmpi(filenames,'all')
         fprintf('No data files found in current directory.\n'); 
         return; 
     end
+elseif contains(filenames,':end')
+    filenames = strrep(filenames,':end','');
+    toend = true;
 end
 
 filelist=multifilename(filenames);
+
+if toend
+   files=dir;
+   lastfile = filelist{end};
+   for i=1:length(files)
+      if length(files(i).name)==6 && all(files(i).name >= '000000') && all(files(i).name <= '999999') && str2double(files(i).name)>str2double(lastfile)
+          filelist = [filelist, files(i).name];
+      end
+   end
+end
      
 if isempty(filelist)
     fprintf('Empty file list\n');
@@ -58,11 +74,11 @@ lastexpno=[]; lastuser=[]; lastlocal=[]; lasttitle=[];
 fprintf('\n');
 for i=1:length(filelist)
     slist(i).file = filelist{i}; %#ok<*AGROW>
-%     if ~isempty(vars) %if need to extract variables, use tasread.
+%          if ~isempty(vars) %if need to extract variables, use tasread.
         scan=tasread(filelist{i});
 %         scan.VARIA.GU = 0; scan.VARIA.GL = 0; scan.VARIA.A3P = 0;
         if isempty(scan), continue; end
-        if isfield(scan,'EXPNO'), expno = scan.EXPNO; else expno = 'none'; end
+        if isfield(scan,'EXPNO'), expno = scan.EXPNO; else expno = 'none'; end %#ok<*SEPEX>
         if isfield(scan,'LOCAL'), local = scan.LOCAL; else local = 'none'; end
         if isfield(scan,'TITLE'), title = scan.TITLE; else title = 'none'; end
         if isfield(scan,'COMND'), command = scan.COMND; else command = 'none'; end
@@ -74,6 +90,7 @@ for i=1:length(filelist)
 %         if strcmp(expno,'file error'), continue, end
 %     end
     slist(i).date = date; slist(i).command = command;
+    scantable.date{i}=date; scantable.command{i}=command;
     nlflag=0;
     if ~strcmp(expno,lastexpno),    fprintf(fid,'**Exp.-No.: %s    ',expno);  lastexpno=expno; nlflag=1; end
     if ~strcmp(user,lastuser),      fprintf(fid,'**User: %s     ',user); lastuser=user; nlflag=1; end
@@ -87,7 +104,7 @@ for i=1:length(filelist)
         fprintf(fid,'\n ------------------------------------------------------------------------\n');
     end
     fprintf(fid,' %7s  %15s ',filelist{i},date);
-    if ~hasdata, 
+    if ~hasdata 
         fprintf(fid,' (empty file)\n'); 
         continue; 
     end
@@ -98,13 +115,13 @@ for i=1:length(filelist)
         else
             prec = .001;
         end
-        tild = findstr(vars{v},'~');
+        tild = strfind(vars{v},'~');
         if isempty(tild), thisvar = vars{v}; else thisvar = vars{v}(1:(tild-1)); end
         
         val = getvar(scan,thisvar,'includeparam');
         if isempty(val), continue; end
         if ~ischar(val)
-            if findstr(vars{v},'~mean') 
+            if strfind(vars{v},'~mean') 
                 val = mean(val); 
             else
                 %val = round(val*100./max(max(val),1))/100.*max(max(val),1); % round a little bit
@@ -112,8 +129,10 @@ for i=1:length(filelist)
                 val = unique(val);
             end
             if numel(val)>1
-                val = '***';
+                scantable.(thisvar)(i) = nan;
+                val = '***'; 
             else
+                scantable.(thisvar)(i) = val;
                 val = num2str(val);
             end
         end
@@ -129,4 +148,6 @@ end
 if fid>1, fclose(fid); end
 
 if nargout==0, clear slist ; end
-
+if nargout > 1
+    scantable.file = filelist;
+end

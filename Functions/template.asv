@@ -1,10 +1,7 @@
-function [val paramnames paramnum description] = template(param,x,opt)
+function [val paramnames paramnum description] = cpa1(param,x,opt)
 
-% Template for creation of new function
+% Cosi
 
-% Edit and save under new name
-
-% template(param,x,opt)
 % Enter function name and description, f(x) = ...
 % Parameters: A, lambda, x0
 

@@ -10,7 +10,7 @@ function output=cmbavg(scanlist,opt,varargin)
 % opt="standard" or empty: use standard grid parameters from options file
 %
 % varargin can contain a number of parameter pairs (override values from options.m)
-% varargin conatining 'ignore [CONST]' ignores deviations in constant(s)
+% varargin containing 'ignore [CONST]' ignores deviations in constant(s)
 
 
 % % P. Steffens 10/2016

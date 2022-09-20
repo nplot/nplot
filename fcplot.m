@@ -5,7 +5,7 @@ function fh = fcplot(datalist,plottype,varargin)
 %
 % Plottype: 'qxy' (standard), 'angles', 'qeplane', 'qxqyen'
 
-% P. Steffens 08/2011 - 08/2014
+% P. Steffens 08/2011 - 09/2020
 
 if nargin <2, plottype='QXY'; end
 
@@ -338,9 +338,9 @@ end
            plotstruct.scandef.xdat = [xstart,cp(1,1)];
            plotstruct.scandef.ydat = [ystart,cp(1,2)];
            set(plotstruct.projectlinehandle, 'XData', plotstruct.scandef.xdat, 'YData', plotstruct.scandef.ydat); 
+           yl = get(plotstruct.axeshandle,'ylim'); xl = get(plotstruct.axeshandle,'xlim');
            vec = [plotstruct.scandef.xdat(2)-plotstruct.scandef.xdat(1), plotstruct.scandef.ydat(2)-plotstruct.scandef.ydat(1)];
-           yl = get(gca,'ylim');
-           framevec = [-vec(2), vec(1)] * min(0.5 , 0.25*(yl(2)-yl(1))/sqrt(sum(vec.^2)));
+           framevec = [-vec(2) / (yl(2)-yl(1))*(xl(2)-xl(1)), vec(1) / (xl(2)-xl(1))*(yl(2)-yl(1))] * min(0.5 , 0.25*sqrt(sum([vec(1)/(xl(2)-xl(1)), vec(2)/(yl(2)-yl(1))].^2)) );
            plotstruct.scandef.framevec = framevec;
            set(plotstruct.projectframehandle, 'XData', [xstart+framevec(1), cp(1,1)+framevec(1), cp(1,1)-framevec(1), xstart-framevec(1), xstart+framevec(1)], ...
                                               'YData', [ystart+framevec(2), cp(1,2)+framevec(2), cp(1,2)-framevec(2), ystart-framevec(2), ystart+framevec(2)]);
@@ -424,17 +424,18 @@ end
         function mousemove_pp1(src,event)
            showpos;
            cp = get(plotstruct.axeshandle,'CurrentPoint');
+           yl = get(plotstruct.axeshandle,'ylim'); xl = get(plotstruct.axeshandle,'xlim'); % to consider axis ratio
            % Shift all points of projection definition according to mouse movement (relative to start values)
            plotstruct.scandef.xdat(2) = cp(1,1);
            plotstruct.scandef.ydat(2) = cp(1,2);
-           vec_alt = [xstart-plotstruct.scandef.xdat(1), ystart-plotstruct.scandef.ydat(1)];
+           vec_alt = [xstart-plotstruct.scandef.xdat(1), ystart-plotstruct.scandef.ydat(1)] ./ [xl(2)-xl(1), yl(2)-yl(1)];
            xstart = cp(1,1); ystart = cp(1,2);
-           vec_neu = [xstart-plotstruct.scandef.xdat(1), ystart-plotstruct.scandef.ydat(1)];
+           vec_neu = [xstart-plotstruct.scandef.xdat(1), ystart-plotstruct.scandef.ydat(1)] ./ [xl(2)-xl(1), yl(2)-yl(1)];
            % Determine the angle of rotation of the central line
            cosa = vec_alt*vec_neu' / sqrt(sum(vec_alt.^2)) / sqrt(sum(vec_neu.^2));
            signa = sign(vec_neu(2)*vec_alt(1)-vec_neu(1)*vec_alt(2));
            % Rotate framevec accordingly
-           framevec = plotstruct.scandef.framevec * [ cosa, signa*sqrt(1-cosa^2); -signa*sqrt(1-cosa^2), cosa];
+           framevec = plotstruct.scandef.framevec ./ [xl(2)-xl(1), yl(2)-yl(1)]  * [ cosa, signa*sqrt(1-cosa^2); -signa*sqrt(1-cosa^2), cosa] .* [xl(2)-xl(1), yl(2)-yl(1)];
            plotstruct.scandef.framevec = framevec;
            set(plotstruct.projectlinehandle, 'XData', plotstruct.scandef.xdat, 'YData', plotstruct.scandef.ydat); 
            xdat = plotstruct.scandef.xdat; ydat = plotstruct.scandef.ydat; %(Assign these variables only to make notation shorter in following lines)
@@ -746,6 +747,9 @@ function mouseclickonplane(src,evnt)
                             uimenu(scanxaxis, 'Label', 'K',                      'Callback', callback_xax_qk);
                             uimenu(scanxaxis, 'Label', 'L',                      'Callback', callback_xax_ql);
                     end
+                         uimenu(menuentry,    'Label', 'Fit Gauss (nfit)',       'Callback', @gaussfit, 'Separator', 'on');
+                         uimenu(menuentry,    'Label', 'Fit Linear (nfit)',      'Callback', @linearfit);
+                         uimenu(menuentry,    'Label', 'Open nfit window',       'Callback', @generalnfit);
             scsavemenu = uimenu(menuentry,    'Label', 'Save scan data to file', 'Enable', 'off', 'Separator', 'on');  % Here, retain the handle to later enable it
                             uimenu(scsavemenu,'Label', 'Full format: (qx,qy,H,K,L,y,dy) + header', 'Callback', @savescan);
                             uimenu(scsavemenu,'Label', 'Simple format: as displayed (x, y, dy)  ', 'Callback', callback_scansave);
@@ -1642,6 +1646,38 @@ function mouseclickonplane(src,evnt)
             mfitgo(x(ind),y(ind),err(ind),xlab,ylab,plotstruct.scaninfo);
         catch
             fprintf('Error on exporting to MFit. Check Mfit installation.\n');
+        end
+    end
+
+%% Callbacks: use nfit
+    function gaussfit(src,evnt)
+        callnfit('gauss');
+    end
+
+    function linearfit(src,evnt)
+        callnfit('linear');
+    end
+
+    function generalnfit(src,evnt)
+        callnfit('*');
+    end
+
+    function callnfit(what) 
+        plotstruct = guidata(gcf);
+        x = plotstruct.scandata.x;
+        y = plotstruct.scandata.y;
+        err = plotstruct.scandata.dy;
+        ind = isfinite(y) & isfinite(err);
+        xlab = get(get(plotstruct.scanaxeshandle,'xlabel'),'string');
+        ylab = get(get(plotstruct.scanaxeshandle,'ylabel'),'string');
+        try 
+            figure
+            errorbar(x(ind),y(ind),err(ind),'ob');
+            xlabel(xlab);
+            ylabel(ylab);
+            nfit(what);
+        catch
+            fprintf('Error on exporting to nfit. Check nfit installation.\n');
         end
     end
 

@@ -45,7 +45,9 @@ nscans = nscans-nd;
 %% Loop over all scans
 
 % Which case of Detector do we use ??
-if isfield(scanlist(1),'MULTI'), flatconemode = true; else flatconemode = false; end
+if isfield(scanlist(1),'TYPE') && strcmpi(scanlist(1).TYPE,'marmot'), marmotmode = true; else marmotmode = false; end
+
+if isfield(scanlist(1),'MULTI') && ~marmotmode, flatconemode = true; else flatconemode = false; end
 
 if isfield(scanlist(1).DATA,'ROI'), impsmode = true; za = getoption('impsanadist','check',varargin); else impsmode = false; end
 if impsmode && any(channels>9), channels = 1:9; end  % if value in options.m is wrong (likely for FC)
@@ -60,7 +62,7 @@ else
 end
     
 
-singlemode = ~flatconemode && ~impsmode; % if neither FC nor IMPS, assume single detector
+singlemode = ~flatconemode && ~impsmode && ~marmotmode; % if neither FC nor IMPS, assume single detector
 
 
 polarized = false;
@@ -185,6 +187,13 @@ for i=1:nscans
         liststruct.KI = mean(ki); liststruct.KF = mean (kf);
         liststruct.constants = {'KI', 'KF'}; 
         liststruct = coordtransform(liststruct,type); % if necessary, here the coord-transformation into QXYZ
+    
+    elseif marmotmode
+        [ch,ei]=meshgrid(channels,getvar(scan,'EI'));
+        liststruct.coordlist = [ch(:),ei(:)];
+        liststruct.type = 'detectorchannels';
+        liststruct.raw = 1;
+        liststruct.coordtype = 'chei';
         
 
     elseif impsmode && any(strcmpi(type,{'QxQyEn','linearQ'}))
@@ -323,7 +332,7 @@ for i=1:nscans
     if any(norm_measured == 0), fprintf(['Warning: During normalization on ' normalizeto ' some zero values in ' normalizeto ' occured. Please check the settings for normalization!\n']); end
     if isempty(norm_measured), fprintf(['Error: Could not perform normalization: ' normalizeto ' column not found in scan file.\n']);  liststruct = []; return; end
     
-    if flatconemode
+    if flatconemode || marmotmode
         norm_measured = repmat(norm_measured,[1,numel(channels)]); 
         if ~isempty(correctionfactors), correctionfactors = repmat(correctionfactors(channels), size(norm_measured,1), 1); end
     elseif impsmode
@@ -348,7 +357,7 @@ for i=1:nscans
     end
     liststruct.polarized = polarized;
         
-    if flatconemode && anachannel==0 % Flatcone
+    if (flatconemode || marmotmode) && anachannel==0 % Flatcone
         multidat  =                scan.MULTI(:,channels)     ./ eff_monvalues * normval ;       %Count rates
         multierr  =       sqrt(max(scan.MULTI(:,channels),1)) ./ eff_monvalues * normval ;       %Error bars, the max(..,1) avoids zero error bars... **
         
