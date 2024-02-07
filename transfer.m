@@ -10,10 +10,10 @@ function transfer(filenames, server, directory)
 % 
 
 
-% P. Steffens, 09/2013
+% P. Steffens, 02/2024
 
 
-[defaultdirectory, defaultserver] = getoption('defaultdirectory','defaultserver');
+[defaultdirectory, defaultserver,username] = getoption('defaultdirectory','defaultserver','defaultuser');
 
 
 if nargin>1, dwnlsrv = server; else dwnlsrv=defaultserver; end
@@ -27,7 +27,8 @@ allfiles = strcmpi(filenames,'all'); % Copy all files?
 
 
 
-username = dwnlsrv;
+% username = dwnlsrv;
+% username = 'nomad';
 
 filelist = [];
 
