@@ -5,7 +5,7 @@ function [paldeflist, assignpal] = analyzepal(scan, paldeflist)
 % reteurn an extended paldeflist and the assignment table of PAL-values to
 % this list
 
-% P. Steffens, 07/2015
+% P. Steffens, 07/2023
 
 
 npollines = length(scan.POLAN);
@@ -14,6 +14,7 @@ npal = 1;
 currentvar = [];
 currentval = [];
 for p = 1:npollines
+    if ~isempty(regexp(scan.POLAN{p},'^\s*\!','once')), continue; end % comment line
     if ~isempty(regexp(upper(scan.POLAN{p}),'^\s*DR', 'once' ))
         [st,en] = regexp(upper(scan.POLAN{p}),'(?<=DR.*\s+)\S+');  % all arguments of drive command
         for a = 1:numel(st)
@@ -70,7 +71,7 @@ for p = 1:npollines
             end
             if fitstate, assignpal(npal) = pd; end
         end
-        if errorstate, fprintf('Error: pal-Definition %d in file %d is not compatible with those from previous files!\n', npal, str2num(scan.FILE)); avgdata = []; return; end 
+        if errorstate, fprintf(2,'Cannot analyze polarized data:\npal-Definition %d in file %d is not compatible with the previous ones (from the same or from other files)!\n', npal, str2num(scan.FILE)); avgdata = []; return; end 
         % if not found, append paldeflist        
         if assignpal(npal) == 0,
             paldeflist = {paldeflist{:}, paldef};

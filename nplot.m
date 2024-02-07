@@ -146,18 +146,20 @@ end
 data.variables = readinput('var',varargin,'last');
 
 if isempty(data.variables)
-%     [st,en] = regexp(upper(scan1.COMND),'(?<=(BS|SC)\s+)\w+');           % ** Allow for multiple variables ?! **
-    [st,en] = regexp(upper(scan1.COMND),'(?<=\s+D)\w+(?=\s+\-?(\d*\.?\d+|\d+\.?\d*))');           
-    % To recognize scanned variables, look at "D.." parts of COMND (the given steps)
-    for i=1:numel(st)
-        scanvar = upper(scan1.COMND(st(i):en(i)));
-        if ~isempty(scanvar)
-            data.variables{length(data.variables)+1} = scanvar;
-        end
-        if strcmp(scanvar,'QH')
-            data.variables{length(data.variables)+1} ='QK'; data.variables{length(data.variables)+1} = 'QL'; data.variables{length(data.variables)+1} ='EN';
-        end
-    end
+%     [st,en] = regexp(upper(scan1.COMND),'(?<=\s+D)\w+(?=\s+\-?(\d*\.?\d+|\d+\.?\d*))');           
+%     % To recognize scanned variables, look at "D.." parts of COMND (the given steps)
+%     for i=1:numel(st)
+%         scanvar = upper(scan1.COMND(st(i):en(i)));
+%         if ~isempty(scanvar)
+%             data.variables{length(data.variables)+1} = scanvar;
+%         end
+%         if strcmp(scanvar,'QH')
+%             data.variables{length(data.variables)+1} ='QK'; data.variables{length(data.variables)+1} = 'QL'; data.variables{length(data.variables)+1} ='EN';
+%         end
+%     end
+    scannedvars = scansteps(scan1.COMND);
+    data.variables = fieldnames(scannedvars)';
+
     % If xvar option given, check if variable in automatically generated var-list
     xvarname = readinput('xvar',varargin,'last');
     if ~isempty(xvarname) && ~any(strcmpi(xvarname,data.variables))
@@ -508,25 +510,32 @@ endpoint = readinput('end',varargin,'last');
 gridstep = readinput('step',varargin,'last');
 
 if isempty(gridstep)        % Determine stepsize from scan command (1st scan) 
+    scannedvars = scansteps(scan1.COMND);
     for i=1:length(data.variables)
-        cmd = upper(scan1.COMND);
+%         cmd = upper(scan1.COMND);
+%         varname = upper(data.variables{i});
+%         stind = 1;
+%         secvar = {'QK','QL','EN'}; % "secondary var's"
+%         if any(strcmp(varname,secvar)) %&& i>1 %**??
+%             % treat special case of qk, ql, en  (as part of dqh)
+%             stind = find(strcmp(varname,{'QK','QL','EN'}))+1;
+%             varname = 'QH';
+%         end
+%         [st,en] = regexp(cmd, ['(?<=\s+D' varname ')(\s+\-?(\d*\.?\d+|\d+\.?\d*))+']);
+%         if ~isempty(st) 
+%             stepadd = str2num(cmd(st(1):en(1))) / 2; %#ok<ST2NM>
+%         elseif isfield(scan1,'STEPS') && isfield(scan1.STEPS,varname)
+%             stepadd = scan1.STEPS.(varname) / 2;
+%         else
+%             stind=[]; stepadd=[]; 
+%         end %stepadd can be array (dqh)
+%         gridstep = [gridstep, stepadd(stind)]; 
         varname = upper(data.variables{i});
-        stind = 1;
-        secvar = {'QK','QL','EN'}; % "secondary var's"
-        if any(strcmp(varname,secvar)) %&& i>1 %**??
-            % treat special case of qk, ql, en  (as part of dqh)
-            stind = find(strcmp(varname,{'QK','QL','EN'}))+1;
-            varname = 'QH';
-        end
-        [st,en] = regexp(cmd, ['(?<=\s+D' varname ')(\s+\-?(\d*\.?\d+|\d+\.?\d*))+']);
-        if ~isempty(st) 
-            stepadd = str2num(cmd(st(1):en(1))) / 2; %#ok<ST2NM>
+        if hasfield(scannedvars,varname)
+            gridstep = [gridstep, scannedvars.(varname) / 2 ];
         elseif isfield(scan1,'STEPS') && isfield(scan1.STEPS,varname)
-            stepadd = scan1.STEPS.(varname) / 2;
-        else
-            stind=[]; stepadd=[]; 
-        end %stepadd can be array (dqh)
-        gridstep = [gridstep, stepadd(stind)]; 
+            gridstep = [gridstep, scan1.STEPS.(varname) / 2 ];
+        end
     end
 else
     nobinning = false;

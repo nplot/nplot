@@ -22,7 +22,7 @@
 %---------------------------
 
 % Correction for efficiency of detector channels:
-vanacorr = 2;   % 0: none, 
+vanacorr = 0;   % 0: none, 
                 % 1: take sum of channels in file
                 % 2: efficiencies explicitly given below
 vanafile = ...  % Filename with vanadium scan
@@ -63,9 +63,9 @@ normval = 4000;
 %---------------------------
 
 knownservers = {'in3','in8','in12','thales','in20'};
-defaultdirectory = '/users/data';
+defaultdirectory = '/home/nomad/data';
 defaultserver = 'thales';
-defaultuser = 'thales';
+defaultuser = 'nomad';
 
 
 %---------------------------

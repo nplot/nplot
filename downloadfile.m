@@ -26,7 +26,7 @@ function success = downloadfile(name,server,directory,username)
 % [knownservers, directory, defaultserver] = getoption('knownservers','defaultdirectory','defaultserver');
 
 if ~iscell(name), h{1}=name; name=h; clear h; end  % ensure cell array
-if nargin < 4, username = server; end
+if nargin < 4, username = 'nomad'; end
 if nargin < 3, directory = '/users/data'; end
 
 filestr = [];
@@ -38,7 +38,7 @@ end
 %% Do remote copy
 % This may depend on the OS. Under Windows, other command may be necessary
 % if no scp installed.
-[re,ou] = system(['scp ' username '@' server ':"' filestr '" .']);
+[re,ou] = system(['scp ' username '@' server ':"' strip(filestr) '" .']);
 
 % in case of error "Filename does not match request": see for ex. https://www.nas.nasa.gov/hecc/support/kb/troubleshooting-scp-file-transfer-failure-with-protocol-error_577.html
 % Solution: switch to sftp, or do "scp -T ..."
