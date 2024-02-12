@@ -49,7 +49,7 @@ for p = 1:npollines
         end
     end
     if ~isempty(regexp(upper(scan.POLAN{p}),'FCU', 'once' ))
-        [st,en] = regexp(upper(scan.POLAN{p}),'UP|DOWN'); % all arguments of OFF-command
+        [st,en] = regexp(upper(scan.POLAN{p}),'UP|DOWN'); 
         paldef.fcu = upper(scan.POLAN{p}(st(1):en(1)));
     end
     if ~isempty(regexp(upper(scan.POLAN{p}),'CO', 'once' ))
