@@ -16,7 +16,7 @@ function [scans, nscans, nodata]=tasread(filenames, varargin)
 % analysis, Flatcone, etc.) is thus to be done by calling routines.
 
 
-% P. Steffens 07/12 - 09/2019
+% P. Steffens 07/12 - 02/2024
 
 
 
@@ -28,6 +28,7 @@ checkfile(filelist,varargin{:});
 nscans= length(filelist);
 % notloaded = [];
 nodata = [];
+scans = [];
 
 
 % Go thorough loop for all files...

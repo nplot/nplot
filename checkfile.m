@@ -13,7 +13,7 @@ function fileok = checkfile(filelist, varargin)
 % If files not found in default directory on server, uses "datafile find" on the
 % remote machine to locate missing files. On these, also use gunzip to decompress .gz files
 
-% P. Steffens 09/2013
+% P. Steffens 09/2013 - 02/2024
 
 % ** question about "./" in front of datafile. When is it necessary?
 
@@ -46,7 +46,7 @@ if all(fileok) || ~any(strcmpi(varargin,'download')), return; end
 %% Try download from default data directory
 
 missingfiles = {};
-for fn=find(~fileok), missingfiles = {missingfiles{:}, filelist{fn}}; end
+for fn=find(~fileok), missingfiles = [missingfiles(:)', {filelist{fn}}]; end
 
 
 [defaultdirectory, defaultserver, defaultuser] = getoption('defaultdirectory','defaultserver','defaultuser');
@@ -95,35 +95,37 @@ end
 if isempty(ou), fprintf('Nothing found.\n'); return; end
 
 % otherwise, go on, and ask if download these files
-fprintf('In the current data directory, the requested files have not been found,\nbut at the following locations on %s there are files matching your search:\n%s\n',server,ou);
+fprintf('In the current data directory, the requested files have not been found, but\nat the following locations on %s there are files matching your search:\n%s\n',server,ou);
 
 if ~any(strcmpi(input('Do you want to use these files? ([y]/n)','s'),{'y',''})), return; end
 
 % Create file list and check for double filenames
 try
     loadlist = regexpmatch(ou,'\S+');
-    loadlist = loadlist(1:(end-1));
+%     loadlist = loadlist(1:(end-1));
 catch
-    fprintf('Error on evaluating output from datafile.\n'); return;
+    fprintf('Error on evaluating output from "datafile" script.\n'); return;
 end
 
 clear pathstr name ext
+notload = false(1,length(loadlist));
 for fn=1:length(loadlist)
     [pathstr{fn}, name{fn}, ext{fn}] = fileparts(loadlist{fn});
     if any(strcmpi(name(1:(fn-1)),name{fn}))
-        fprintf('Error: Filename conflict (found same file numor several times).\n');
-        return;
+        fprintf('Warning: Filename conflict for %s (found same file numor several times)\n',name{fn});
+        notload(fn) = true;
     else 
-        i=find(strcmp(filelist,name{fn}));
-        if isempty(i) && ~isempty(ext{fn}), i=find(strcmp(filelist,[name{fn},'.',ext{fn}])); end
-        if numel(i)==1, fnindex(fn)=i; else fnindex(fn)=nan; end
+        i = find(strcmp(filelist,name{fn})); % index in original list
+        if isempty(i) && ~isempty(ext{fn}), i = find(strcmp(filelist,[name{fn},ext{fn}])); end
+        if numel(i)==1, fnindex(fn)=i; else fnindex(fn)=nan; end %?
     end
 end
+if any(notload), fprintf('Using first occurrence. (To use other files, please transfer manually.)\n'); end
 
 % Download missing files
-success = downloadfile(loadlist,server,'');
+success = downloadfile(loadlist(~notload),server,'');
 
-fileok(fnindex) = success;
+fileok(fnindex(~notload)) = success;
 
 % if some zipped files, unzip
 gzfiles = strcmpi(ext,'.gz');

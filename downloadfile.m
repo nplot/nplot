@@ -28,6 +28,8 @@ function success = downloadfile(name,server,directory,username)
 if ~iscell(name), h{1}=name; name=h; clear h; end  % ensure cell array
 if nargin < 4, username = 'nomad'; end
 if nargin < 3, directory = '/users/data'; end
+success = zeros(1,length(name));
+if isempty(name), return; end
 
 filestr = [];
 for fn=1:length(name)
