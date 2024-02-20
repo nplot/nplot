@@ -28,7 +28,6 @@ checkfile(filelist,varargin{:});
 nscans= length(filelist);
 % notloaded = [];
 nodata = [];
-scans = [];
 
 
 % Go thorough loop for all files...
@@ -41,7 +40,7 @@ for j=1:nscans
     filename = filelist{j};
     
     if strfind(filename,'.nxs') % nexus file
-        scanfile = nxsTAS(readnexus(filename));
+        scanfile = nxsTAS(nxsread(filename));
         
     else % tas-format       
    
