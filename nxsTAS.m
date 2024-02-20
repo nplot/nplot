@@ -36,7 +36,7 @@ end
 setdata('INSTR','instrument_name');
 
 if ~hasfield(nxs,nxs.instrument_name) && hasfield(nxs,'instrument')
-    nxs.instrument_name = 'instrument'; % in some nexus files this field is called "instrument" rather than "IN20" etc.
+    nxs.instrument_name = 'instrument'; % in some nexus files this field is called "instrument" rather than "IN20" etc. *** will change in future
 end
     
 
@@ -48,6 +48,16 @@ setdata('DATE','start_time');
 setdata('TITLE','title');
 setdata('TYPE','instrument_mode');
 setdata('COMND',[nxs.instrument_name '.command_line.actual_command']);
+
+if hasfield(nxs,'mode') && hasfield(nxs,'preset')
+    if nxs.mode == 0,       data.PARAM.MN = nxs.preset; 
+    elseif nxs.mode == 1,   data.PARAM.TI = nxs.preset; end
+end   
+% analyze COMND for normalization (*** for new nexus files, do not need the following any more, but for old the previous did not work)
+[s,e]=regexp(upper(data.COMND),'(?<=\sMN\s+)\d+');           if s, data.PARAM.MN = str2double(data.COMND(s:e)); end % normalize on MN
+[s,e]=regexp(upper(data.COMND),'(?<=\sTI\s+)\d+(?:\.\d*)?'); if s, data.PARAM.TI = str2double(data.COMND(s:e)); end % normalize on TIME
+
+
 
 setdata('POSQE.QH','sample.qh'); 
 setdata('POSQE.QK','sample.qk'); 
@@ -110,19 +120,18 @@ else
     datanames = nxs.data_scan.scanned_variables.variables_names.label;
     ndat = 0;
     for i = 1:length(datanames)
-        if strcmpi(datanames{i}, 'Monitor1'), dname='M1';
-        elseif strcmpi(datanames{i}, 'Monitor2'), dname='M2';
-        elseif strcmpi(datanames{i}, 'Time'), dname='TIME';
-        elseif strcmpi(datanames{i}, 'Detector'), dname='CNTS';
-        else, dname = datanames{i};
+        if strcmpi(datanames{i}, 'Monitor1'),     datanames{i}='M1';
+        elseif strcmpi(datanames{i}, 'Monitor2'), datanames{i}='M2';
+        elseif strcmpi(datanames{i}, 'Time'),     datanames{i}='TIME';
+        elseif strcmpi(datanames{i}, 'Detector'), datanames{i}='CNTS';
         end
-        data.DATA.(dname) = nxs.data_scan.scanned_variables.data(:,i);
-        ndat = numel(data.DATA.(dname));
+        data.DATA.(datanames{i}) = nxs.data_scan.scanned_variables.data(:,i);
+        ndat = numel(data.DATA.(datanames{i}));
     end
     % "Guess" PNT and PAL   !** to be made more stable when real PAL will exist in nexus !!
     datanames{end+1} = 'PNT';
     if hasfield(data,'POLAN') % polarized
-        npal = numel(cell2mat(strfind(join(data.POLAN(:)),'CO '))); % number of counts in polarization Loop (deduced by counting "co"'s in POLAN)
+        npal = numel(cell2mat(strfind(upper(join(data.POLAN(:))),'CO '))); % number of counts in polarization Loop (deduced by counting "co"'s in POLAN)
         pnt =  repmat(1:ceil(ndat/npal),npal,1);
         data.DATA.PNT = pnt(1:ndat)';
         pal =  repmat(1:npal,ceil(ndat/npal),1)';
@@ -134,8 +143,11 @@ else
     data.DATA.columnames = datanames;
 end
 
-
-% setdata('MULTI','data_scan.detector_data.data'); ** how to detect if Flatcone ?
+if hasfield(nxs,'data_scan') && hasfield(nxs.data_scan,'detector_data') && hasfield(nxs.data_scan.detector_data,'data')
+    setdata('MULTI','data_scan.detector_data.data'); 
+    data.MULTI = double(data.MULTI');
+    data.PARAM.CHAN = 16; % !!!*** cannot read from nexus file !!!
+end
 
 
 end
