@@ -143,7 +143,7 @@ else
     data.DATA.columnames = datanames;
 end
 
-if hasfield(nxs,'data_scan') && hasfield(nxs.data_scan,'detector_data') && hasfield(nxs.data_scan.detector_data,'data')
+if hasfield(nxs,'instrument_mode') && strcmpi(nxs.instrument_mode,'flatcone') && hasfield(nxs,'data_scan') && hasfield(nxs.data_scan,'detector_data') && hasfield(nxs.data_scan.detector_data,'data')
     setdata('MULTI','data_scan.detector_data.data'); 
     data.MULTI = double(data.MULTI');
     data.PARAM.CHAN = 16; % !!!*** cannot read from nexus file !!!
