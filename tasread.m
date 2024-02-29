@@ -57,6 +57,15 @@ for j=1:nscans
 
         filecontent = fread(FID);   % read whole file at once
         fclose(FID);
+        
+        
+        % replace "in/out" (special case for plexi in some in8 files)
+        st = regexpi(char(filecontent(:)'),'(?<=DATA.*PLEXI.*\n.*)out');
+        filecontent(st)=32; filecontent(st+1)=48; filecontent(st+2)=32; % put space-"0"-space instead of "out"
+        st = regexpi(char(filecontent(:)'),'(?<=DATA.*PLEXI.*\n.*)in');
+        filecontent(st)=49; filecontent(st+1)=32; % put "1"-space instead of "in"
+        
+        
 
         endline = [0, find(filecontent==10 | filecontent==13)'];
         endline = setdiff(endline, endline-1); % in case of double line returns, keep only second
@@ -82,7 +91,7 @@ for j=1:nscans
                     fline = strtrim(filecontent(endline(nl+1)+1:endline(nl+2)-1)'); % read line with col.names
                     if isempty(fline), break, end
                     scanfile.DATA.columnames = regexpmatch(fline,'\S+');
-                    data = sscanf(filecontent(endline(nl+2)+1:flen)','%f'); % read whole block (until non-number appears)  %** does not treat the case of text data (like "out" for plexi in some in8 files)!
+                    data = sscanf(filecontent(endline(nl+2)+1:flen)','%f'); % read whole block (until non-number appears)  %** does not treat the case of text data (see in/out case above)
                     data = reshape(data, length(scanfile.DATA.columnames), [])';
                 case 'MULTI:'
                     multi = sscanf(filecontent(endline(nl+1)+1:flen)','%d'); % read whole block (until non-number appears)
