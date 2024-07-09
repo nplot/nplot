@@ -63,7 +63,12 @@ for num = 1:length(list)
         else list{num}.plotstyle=pstyle; end
     end
     % use custom plotstyle if string. (Can also be struct, see below)
-    if isfield(list{num},'plotstyle') && ischar(list{num}.plotstyle), linespec = list{num}.plotstyle; 
+    if isfield(list{num},'plotstyle') 
+        if ischar(list{num}.plotstyle), linespec = list{num}.plotstyle; 
+        else
+            if isfield(list{num}.plotstyle,'Marker'), linespec = list{num}.plotstyle.Marker; else linespec='o'; end 
+            if isfield(list{num}.plotstyle,'color'), linespec(2)=list{num}.plotstyle.color; else linespec(2)='k'; end
+        end
     else linespec = plottype{mod(num-1+dcount,length(plottype))+1}; % default
     end 
     if strfind(linespec,'f'), linespec(linespec=='f') = 'o'; filled = true; else filled=false; end

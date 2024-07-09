@@ -29,6 +29,7 @@ nscans= length(filelist);
 % notloaded = [];
 nodata = [];
 
+allfieldnames = {};
 
 % Go thorough loop for all files...
 
@@ -151,6 +152,19 @@ for j=1:nscans
         end
     
     end % (tas-format)
+    
+    
+    if ~any(strcmpi(varargin,'cells')) % Add missing fields (as undefined) such that all scans have the same field
+        for t = setdiff(allfieldnames,fieldnames(scanfile))'
+            scanfile.(t{1}) = [];   % add missing fields to this scan
+        end
+        for t = setdiff(fieldnames(scanfile), allfieldnames)'
+            for jj = 1:(nsc-1) % add missing fields to all previous scans
+                if ~isfield(scans(jj),t{1}), scans(jj).(t{1}) = []; end
+            end
+        end
+    end
+    allfieldnames = union(allfieldnames, fieldnames(scanfile));
     
     
     % Assign to output list    

@@ -900,6 +900,9 @@ if ~strcmpi(axhandle, 'none')
     elseif ~any(strcmpi(varargin,'nolegend')), legend show; end
 
     end
+    
+    plotlegend = get(gca,'legend');
+    plotlegendstring = plotlegend.String; 
 end
 
 %% Fitting
@@ -983,6 +986,9 @@ if ~isempty(funcname)
         figdata.nfitobj = fitobj;
         guidata(gcf, figdata);
     end
+    
+%     % Restore legend display
+%     if ~isempty(plotlegend), plotlegend.String = plotlegendstring; end     % ** tut's nicht
 end
 
 %%  

@@ -3,7 +3,7 @@ function liststruct = makelist(scanlist, type, varargin)
 % Construct a linear list of all data points with respective coordinates and counts rates
 % 'type' determines the coordinates
 %
-% P. Steffens, 01/2013
+% P. Steffens, 01/2013 - 07/2024
 
 
 % Use standard options (for normalization etc.):
@@ -122,6 +122,7 @@ for i=1:nscans
    
     liststruct.sampleinfo.lattice = getlattice(scan);
     [liststruct.sampleinfo.ax, liststruct.sampleinfo.bx] = getorientation(scan);
+    liststruct.constants = {};
     
     % Determine the detector efficiency correction factors to be applied
     if flatconemode
@@ -150,6 +151,8 @@ for i=1:nscans
         % Coordinate transformation into the angle-plane
         if flatconemode
             [xang,yang] = XYangles(getvar(scan,'a4'), gfc , channels, getvar(scan,'psi'));
+        elseif singlemode
+             xang = getvar(scan,'a4'); yang = getvar(scan,'a3');
         elseif impsmode
 %             xang = getvar(scan,'a4');
 %             yang = getvar(scan,'a3');
@@ -164,7 +167,7 @@ for i=1:nscans
         liststruct.coordtype = 'Angles';
         % [ki,kf,Qvert] = kikfqv(scan);
         ki = getvar(scan,'ki'); %kf = getvar(scan,'kf'); 
-        if impsmode, Qv= 0; elseif flatconemode, Qv = Qvert(scan, 1); end
+        if impsmode || singlemode, Qv= 0; elseif flatconemode, Qv = Qvert(scan, 1); end % ** Qv for singlemode ??
         if (max(ki)-min(ki) > maxdeviate.KI) || (max(kf)-min(kf) > maxdeviate.KF) || (max(Qv)-min(Qv) > maxdeviate.QVERT)
             fprintf('Warning: ki, kf, or Qvert not constant for all points in scan %s !! Going on with averages... (check if correct!!)\n The tolerances can be set in the options file.\n',scan.FILE);
         end
