@@ -63,7 +63,7 @@ normval = 4000;
 %---------------------------
 
 knownservers = {'in3','in8','in12','thales','in20'};
-defaultdirectory = '/home/nomad/data';
+defaultdirectory = '/home/nomad/rawdata';
 defaultserver = 'thales';
 defaultuser = 'nomad';
 

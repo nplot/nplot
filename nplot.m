@@ -428,8 +428,8 @@ for scannr = 1:length(scans)
                 fprintf(2,'Error: Could not find variable %s in file %d. Check file format and spelling (incl. upper/lower case).\n', yvar, scannr);
                 if nargout, avgdata = []; else clear avgdata; end; return; 
             end
-            if any(strcmpi(yvar,{'M1','M2'}))
-                if ~nooutput, warningstring = ['Using normalized ', yvar,' on y-axis and sqrt as error. (check if using divider)']; end
+            if any(strcmpi(yvar,{'M1','M2','CNTS'}))
+                if ~nooutput, warningstring = ['Using normalized ', yvar,' on y-axis and sqrt as error.']; end
                 data.valuelist = [data.valuelist; monval * [scan.DATA.(yvar) ./ scan.DATA.(moncolumn), sqrt(scan.DATA.(yvar)) ./ scan.DATA.(moncolumn)]];
             else
                 data.valuelist = [data.valuelist; scan.DATA.(yvar), nan(size(scan.DATA.(yvar)))];

@@ -1,7 +1,7 @@
 function data = nxsTAS(nxs)
 % Translate nxs file structure in traditional TAS structure
 
-% PS 06/23 - 02/24
+% PS 06/23 - 05/25
 
     function setdata(target, source, warn)
         nxslevel = strsplit(source,'.');
@@ -118,15 +118,15 @@ if ~hasfield(nxs,'data_scan') || ~hasfield(nxs.data_scan,'scanned_variables') ||
     warning('Warning: could not extract data from nxs file.');
 else
     datanames = nxs.data_scan.scanned_variables.variables_names.label;
-    ndat = 0;
+    % Number of measured points. If scan stopped earlier than expected, not easy to know. Therefore, if matrix contains "all zero"-lines, only read until before that:
+    ndat = min([ size(nxs.data_scan.scanned_variables.data,1), (find(all(nxs.data_scan.scanned_variables.data==0,2),1)-1)]);  
     for i = 1:length(datanames)
         if strcmpi(datanames{i}, 'Monitor1'),     datanames{i}='M1';
         elseif strcmpi(datanames{i}, 'Monitor2'), datanames{i}='M2';
         elseif strcmpi(datanames{i}, 'Time'),     datanames{i}='TIME';
         elseif strcmpi(datanames{i}, 'Detector'), datanames{i}='CNTS';
         end
-        data.DATA.(datanames{i}) = nxs.data_scan.scanned_variables.data(:,i);
-        ndat = numel(data.DATA.(datanames{i}));
+        data.DATA.(datanames{i}) = nxs.data_scan.scanned_variables.data(1:ndat,i);
     end
     % "Guess" PNT and PAL   !** to be made more stable when real PAL will exist in nexus !!
     datanames{end+1} = 'PNT';
