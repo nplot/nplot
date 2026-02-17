@@ -126,7 +126,7 @@ else
 end
 
 
-if isempty(scans{1}), return; end
+if isempty(scans) || isempty(scans{1}), return; end
 
 scan1 = scans{1};
 

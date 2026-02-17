@@ -9,6 +9,7 @@ function data = nxsTAS(nxs)
         for li=1:length(nxslevel)
             if hasfield(src,nxslevel{li})
                 src = src.(nxslevel{li});
+                if isnumeric(src), src = double(src); end
             else
                 if nargin>2 && warn
                     warning([source ' not found in data file.']);
@@ -17,6 +18,7 @@ function data = nxsTAS(nxs)
             end
         end
         targetlevel = strsplit(target,'.');
+        
         if length(targetlevel)==1
             data.(target)=src;
         elseif length(targetlevel)==2
@@ -58,6 +60,7 @@ end
 [s,e]=regexp(upper(data.COMND),'(?<=\sTI\s+)\d+(?:\.\d*)?'); if s, data.PARAM.TI = str2double(data.COMND(s:e)); end % normalize on TIME
 
 
+data.POSQE.EN = nxsgetvar(nxs,'EI') - nxsgetvar(nxs,'EF'); %  sample.en seems to be not always there...
 
 setdata('POSQE.QH','sample.qh'); 
 setdata('POSQE.QK','sample.qk'); 

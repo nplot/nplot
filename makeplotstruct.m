@@ -63,6 +63,17 @@ if isempty(ctr), fprintf('No plot - empty data set.\n'); plotstruct = []; return
 plotstruct.vertexlist = ctr.vertexlist;
 plotstruct.coordlist = ctr.coordlist;
 
+orgdata = readinput('originaldata',varargin);
+if ~isempty(orgdata)
+    orgdata = coordtransform(orgdata,plottype);
+    if isempty(orgdata)
+        fprintf('Conversion of originaldata into desired coordinate axes not successful. Ignore.\n');
+    else
+        plotstruct.originaldata = orgdata;
+    end
+end
+
+
 %% initialize fields of plotstruct
 
 if ~isfield(ctr,'sampleinfo')

@@ -19,6 +19,7 @@ function data = nxsread(filename)
             val = H5D.read(did);
             val = squeeze(val); % remove extra dimensions
             if ischar(val) && size(val,1)>1 && size(val,2)==1, val=val'; end % transpose to make simple string
+            if isnumeric(val), val = double(val); end   % avoid single precision
             dat.(group.Datasets(i).Name) = val;
             H5D.close(did);
         end

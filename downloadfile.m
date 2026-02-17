@@ -1,5 +1,7 @@
 function success = downloadfile(name,server,directory,username)
 
+% should no longer be used!
+
 % Downloads data file directly from ILL spectrometer computer.
 % (Is normally not called directly; use transfer.m or checkfile.m instead.)
 % Uses scp on local machine.
@@ -14,10 +16,10 @@ function success = downloadfile(name,server,directory,username)
 %       ssh-keygen -t rsa
 % (This creates a file .ssh/id_rsa.pub under your home directory)
 % Copy this to the remote machine and append to the list of authorized keys:
-%       scp .ssh/id_rsa.pub in8@in8:~
-%       ssh in8@in8 "cat id_rsa.pub >> .ssh/authorized_keys ; rm id_rsa.pub" 
+%       scp .ssh/id_rsa.pub nomad@thales:~
+%       ssh noamd@thales "cat id_rsa.pub >> .ssh/authorized_keys ; rm id_rsa.pub" 
 % Now the connection should be possible without password authorization
-% (test by "ssh in8@in8")
+% (test by "ssh nomad@thales")
 
 % P. Steffens, 09/2013
 
@@ -27,7 +29,7 @@ function success = downloadfile(name,server,directory,username)
 
 if ~iscell(name), h{1}=name; name=h; clear h; end  % ensure cell array
 if nargin < 4, username = 'nomad'; end
-if nargin < 3, directory = '/users/data'; end
+if nargin < 3, directory = '/home/nomad/data'; end
 success = zeros(1,length(name));
 if isempty(name), return; end
 

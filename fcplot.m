@@ -5,7 +5,7 @@ function fh = fcplot(datalist,plottype,varargin)
 %
 % Plottype: 'qxy' (standard), 'angles', 'qeplane', 'qxqyen'
 
-% P. Steffens 08/2011 - 09/2020
+% P. Steffens 08/2011 - 01/2026
 
 if nargin <2, plottype='QXY'; end
 
@@ -495,6 +495,11 @@ end
         newplanedef.c = sum(xlim)/2;
         newplanedef.properties = {'FaceColor','r','FaceAlpha',.35,'Tag','cutplane','ButtonDownFcn',@mouseclickonplane}; %** use options.m for this?
         if ~isfield(plotstruct,'planedef'), plotstruct.planedef = {}; end
+        % open a figure for the cut
+        if isfield(plotstruct,'originaldata')
+            figure;
+            newplanedef.axes = axes(); % handle to axes
+        end
         plotstruct.planedef = [plotstruct.planedef, newplanedef];
         guidata(gcf, plotstruct);
         doplot(plotstruct);
@@ -607,6 +612,11 @@ function mouseclickonplane(src,evnt)
            cutvertices = cutvertices * planevectors' + repmat(origin(:)',size(cutvertices,1),1);
            set(thisplaneh,'Vertices',cutvertices, 'Faces',cutorder);
            moveok = true;
+           % update Color plot, if linked one exists
+           if hasfield(planedef,'axes') && ~isempty(planedef.axes)
+                [xgrid,ygrid,y] = integratepoints(plotstruct.originaldata, planedef, [.02,.1], .4);  % **! set parameters !!
+                p=pcolor(planedef.axes,xgrid,ygrid,y); set(p,'linestyle','none'); caxis(planedef.axes,[0,.6]); xlim(planedef.axes,[-.5,3]); % ** !!
+           end
         end
             
         function mousemovepl1(src,evnt) % To shift the plane along its normal

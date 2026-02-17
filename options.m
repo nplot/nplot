@@ -52,16 +52,20 @@ channels = allchannels;
 %---------------------------
 
 % Variable on which to normalize (usually 'M1' for Monitor; 'TIME' for time)
-normalizeto = 'M1';
+normalizeto = 'TIME';
 
 % Desired normalization value for this variable (monitor counts, seconds, ...)
-normval = 4000;
+normval = 1;
 
 
 %---------------------------
 % Data transfer
 %---------------------------
 
+% Default instrument, for data access on Serdon
+defaultinstrument = 'thales';
+
+% No longer used (direct access to instrument computers)
 knownservers = {'in3','in8','in12','thales','in20'};
 defaultdirectory = '/home/nomad/rawdata';
 defaultserver = 'thales';

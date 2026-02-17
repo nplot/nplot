@@ -200,6 +200,10 @@ for coordfield = coordfieldlist
             %Do the transformation to inplaneQ 
             newlist.(coordfield)(:,3) = Es;
             [newlist.(coordfield)(:,1), newlist.(coordfield)(:,2)] = inplaneQ(datalist.(coordfield)(:,1), datalist.(coordfield)(:,3), kis, datalist.KF, datalist.QVERT);
+        elseif strcmpi(datalist.coordtype,'ANGLESEIEF')
+            newlist.(coordfield)(:,3) = datalist.(coordfield)(:,3) - datalist.(coordfield)(:,4);  % E = Ei - Ef
+            [newlist.(coordfield)(:,1), newlist.(coordfield)(:,2)] = inplaneQ(datalist.(coordfield)(:,1), datalist.(coordfield)(:,2), sqrt(datalist.(coordfield)(:,3)/2.072128) , sqrt(datalist.(coordfield)(:,4)/2.072128), datalist.QVERT);
+            newlist.(coordfield) = newlist.(coordfield)(:,1:3);
         else
             trygeneraltransform;
         end

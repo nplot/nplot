@@ -6,9 +6,10 @@ function [val,rest] = readinput(name, arglist, varargin)
 % return its value (the following cell, or what comes after 'name' in a single string. 
 % val is cell array if several occurences of 'name' are found.
 % If vargargin = 'first' or 'last', return only first or last occurrence.
+% 'noconvert' avoids type conversion (e.g. string to numeric)
 % rest is the part of arglist which does not contain 'name'.
 
-% P. Steffens, 05/2018
+% P. Steffens, 05/2018 - 02/26
 
 val = [];
 rest = [];
@@ -35,6 +36,7 @@ while ni < length(arglist)
     end
 end
 
+noconvert = any(strcmpi(varargin,'noconvert'));
 
 % rest = arglist;
 
@@ -53,7 +55,7 @@ for p=1:numel(vi)    % Allow for multiple occurences
     if ischar(valnew) % try to convert to numeric
         valnew=strtrim(valnew);
         valn = str2num(arglist{vi(p)+1}); %#ok<ST2NM> 
-        if ~isempty(valn) && (isnumeric(valn) || isobject(valn)) && ~isa(valn,'function_handle') && ~isa(valn,'iFunc'), valnew=valn; end
+        if ~noconvert && ~isempty(valn) && (isnumeric(valn) || isobject(valn)) && ~isa(valn,'function_handle') && ~isa(valn,'iFunc'), valnew=valn; end
     end
     if ischar(valnew) && valnew(1)=='{' && valnew(end)=='}'
         % try to convert to cell array

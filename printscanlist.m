@@ -94,7 +94,7 @@ for i=1:length(filelist)
     nlflag=0;
     if ~strcmp(expno,lastexpno),    fprintf(fid,'**Exp.-No.: %s    ',expno);  lastexpno=expno; nlflag=1; end
     if ~strcmp(user,lastuser),      fprintf(fid,'**User: %s     ',user); lastuser=user; nlflag=1; end
-    if ~strcmp(local,lastlocal),    fprintf(fid,'**Local: %s     ',local); lastlocal=local;  nlflag=1; end
+%     if ~strcmp(local,lastlocal),    fprintf(fid,'**Local: %s     ',local); lastlocal=local;  nlflag=1; end
     if ~strcmp(title,lasttitle),    fprintf(fid,'**Title: %s     ',title); lasttitle=title;  nlflag=1; end
     if nlflag==1, fprintf(fid,'\n'); end
     if i==1

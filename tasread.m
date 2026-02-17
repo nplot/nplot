@@ -28,8 +28,10 @@ checkfile(filelist,varargin{:});
 nscans= length(filelist);
 % notloaded = [];
 nodata = [];
+if any(strcmpi(varargin,'cells')), scans={}; end
 
 allfieldnames = {};
+addemptyfields = false;
 
 % Go thorough loop for all files...
 
@@ -51,8 +53,10 @@ for j=1:nscans
         [FID,message] = fopen(filename); % 'rt'
 
         if (~isempty(message))
-             disp(['An error occured while opening the file ' filename ': ' message ]);
+            warning('off','backtrace');
+            warning(['An error occured while opening the file ' filename ': ' message ]);
     %         notloaded = [notloaded,nsc]; 
+            nsc = nsc-1;
             continue;
         end
 
@@ -157,10 +161,11 @@ for j=1:nscans
     if ~any(strcmpi(varargin,'cells')) % Add missing fields (as undefined) such that all scans have the same field
         for t = setdiff(allfieldnames,fieldnames(scanfile))'
             scanfile.(t{1}) = [];   % add missing fields to this scan
+            addemptyfields = true;
         end
         for t = setdiff(fieldnames(scanfile), allfieldnames)'
             for jj = 1:(nsc-1) % add missing fields to all previous scans
-                if ~isfield(scans(jj),t{1}), scans(jj).(t{1}) = []; end
+                if ~isfield(scans(jj),t{1}), scans(jj).(t{1}) = []; addemptyfields = true; end
             end
         end
     end
@@ -176,12 +181,14 @@ for j=1:nscans
         end
     catch
 %         notloaded = [notloaded, j];
-        fprintf(['Did not load ' scanfile.FILE ': format not identical to previous files in list.\n']);
+        fprintf(['Did not load ' scanfile.FILE ': format not compatible with previous files in list.\n']);
         nodata = setdiff(nodata,nsc);
         nsc = nsc-1;
     end
    
 end
+
+if addemptyfields, warning('off','backtrace'); warning('(tasread.m) Empty fields have been added to make format of all files consistent.'); end
 
 nscans = nsc;
 if nscans == 0

@@ -174,7 +174,7 @@ if isempty(bindist)
     end
 end
 normval = readinput('monitor',varargin); if isempty(normval),normval = readinput('time',varargin); end
-if isempty(normval), normval = getoption('normval','check',varargin); end
+if isempty(normval), if hasfield(scanlist{1},'normval'), normval = scanlist{1}.normval; else, normval = getoption('normval','check',varargin); end; end
 gridstep = readinput('grid',varargin);
 %if isempty(gridstep) && ~strcmpi(opt,'EXPLICIT'), stdgrid = getoption('stdgrid','check',varargin); gridstep=stdgrid.(output.coordtype); end
 % ** ??
