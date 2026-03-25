@@ -27,8 +27,8 @@ else    % otherwise, look in param list
     else, switch upper(varname)
         case 'DM', varname='Monochromator'; subfield='d_spacing'; 
         case 'DA', varname='Analyser'; subfield='d_spacing'; 
-        case {'EI','KI'}, varname='Monochromator'; subfield=lower(varname); 
-        case {'EF','KF'}, varname='Analyser'; subfield=lower(varname); 
+        case {'EI','KI'}, subfield=lower(varname); varname='Monochromator'; 
+        case {'EF','KF'}, subfield=lower(varname); varname='Analyser'; 
     end, end
     paramlist = fieldnames(d.(d.instrument_name));
     if any(strcmpi(paramlist,varname))
